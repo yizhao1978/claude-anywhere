@@ -1,11 +1,11 @@
 [Unit]
-Description=Claude Anywhere WeChat Work Bridge
+Description=Claude Anywhere QQ Bot Bridge
 After=network.target
 
 [Service]
 Type=simple
 WorkingDirectory=/opt/claude-anywhere
-ExecStart=/usr/bin/node bridge-wecom.mjs
+ExecStart=/usr/bin/node bridge-qq.mjs
 Restart=on-failure
 RestartSec=5
 EnvironmentFile=/opt/claude-anywhere/.env

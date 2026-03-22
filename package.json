@@ -1,13 +1,14 @@
 {
   "name": "claude-anywhere",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
-  "description": "Use Claude Code anywhere via Telegram & WeChat Work — no terminal needed",
-  "main": "bridge-telegram.mjs",
+  "description": "Use Claude Code anywhere via Telegram, WeChat Work & QQ — no terminal needed",
+  "main": "start-all.mjs",
   "scripts": {
-    "start": "node bridge-telegram.mjs",
+    "start": "node start-all.mjs",
     "telegram": "node bridge-telegram.mjs",
-    "wecom": "node bridge-wecom.mjs"
+    "wecom": "node bridge-wecom.mjs",
+    "qq": "node bridge-qq.mjs"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.66.0",
