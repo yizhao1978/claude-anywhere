@@ -70,9 +70,10 @@ const MAX_RECONNECT_ATTEMPTS = 100;
 // ============ Core instance ============
 const core = new ClaudeAnywhere({ platform: "qq" });
 
-// QQ does not support proactive push — cron results cannot be delivered
+// QQ Bot proactive messaging was disabled by Tencent since 2025-04-21.
+// Cron results cannot be delivered. Log only.
 core.setCronResultHandler(async (jobId, jobName, userId, result) => {
-  core.logger.warn(`QQ does not support proactive push. Cron result for job "${jobName}" (user ${userId}) cannot be delivered.`);
+  core.logger.warn(`[QQ] Cron job "${jobName}" executed but result cannot be pushed (QQ proactive messaging disabled by Tencent). Use Telegram or WeChat Work for cron.`);
 });
 
 // ============ Token management ============
