@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Claude Anywhere — OpenClaw meets Claude Code, anywhere.</title>
-  <meta name="description" content="用手机随时随地操作 OpenClaw 和 Claude Code，摆脱终端束缚。Use OpenClaw & Claude Code from your phone via Telegram & WeChat Work.">
+  <title>Claude Anywhere — Your AI engineer, in your pocket.</title>
+  <meta name="description" content="Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地读写文件、执行命令、分析图片、管理代码。Claude Anywhere gives you the power to read/write files, execute commands, analyze images — from Telegram, WeChat Work, or QQ.">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -332,23 +332,50 @@
     }
     .btn-pricing-pro:hover { opacity: .88; }
 
-    /* QUICKSTART */
-    #quickstart { background: var(--bg2); }
-    .quickstart-steps {
+    /* SETUP CARDS */
+    #setup { background: var(--bg2); }
+    .setup-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
     }
-    .qs-step {
+    .setup-card {
       background: var(--bg3);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: 16px;
+      padding: 32px 28px;
+      transition: border-color .2s, transform .2s;
     }
-    .qs-num {
+    .setup-card:hover { border-color: #ff6b3560; transform: translateY(-2px); }
+    .setup-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .setup-card-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .setup-card-time {
+      font-size: 12px;
+      color: var(--orange);
+      background: #ff6b3515;
+      border: 1px solid #ff6b3530;
+      padding: 3px 10px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .setup-step {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .setup-step:last-child { margin-bottom: 0; }
+    .setup-step-num {
       width: 28px;
       height: 28px;
+      min-width: 28px;
       background: var(--grad);
       border-radius: 50%;
       display: flex;
@@ -357,23 +384,29 @@
       font-size: 13px;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 10px;
+      margin-top: 2px;
     }
-    .qs-step p { font-size: 13px; color: var(--text2); }
-    .code-block {
+    .setup-step-content { flex: 1; }
+    .setup-step-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .setup-step-desc {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.5;
+    }
+    .setup-step-desc code {
       background: #0d0d0d;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px 24px;
-      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace;
-      font-size: 13px;
-      line-height: 2;
-      color: #ccc;
-      overflow-x: auto;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+      font-size: 12px;
+      color: var(--orange);
+      word-break: break-all;
     }
-    .code-block .cmd-num { color: var(--text3); user-select: none; margin-right: 12px; }
-    .code-block .cmd { color: var(--orange); }
-    .code-block .comment { color: #555; }
 
     /* CONTACT */
     #contact { background: var(--bg); }
@@ -430,6 +463,7 @@
       section { padding: 60px 16px; }
       .hero-actions { flex-direction: column; align-items: center; }
       .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+      .setup-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -463,7 +497,7 @@
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#pricing">Pricing</a></li>
-    <li><a href="#quickstart">Quick Start</a></li>
+    <li><a href="#setup">Setup</a></li>
     <li><a href="https://claudeanywhere.gumroad.com/l/claude-anywhere" class="nav-cta">Get Pro</a></li>
   </ul>
 </nav>
@@ -472,15 +506,15 @@
 <section style="padding: 0; background: var(--bg);">
   <div class="hero">
     <div class="hero-badge">
-      <span>🦞</span> <span>OpenClaw × Claude Code</span> <span>⭐</span>
+      <span>📱</span> <span>Telegram &middot; WeChat Work &middot; QQ</span> <span>⭐</span>
     </div>
     <h1><span class="grad-text">Claude Anywhere</span></h1>
-    <p class="hero-sub-en">OpenClaw meets Claude Code, anywhere.</p>
-    <p class="hero-desc-zh">龙虾与 Claude Code 的完美结合</p>
-    <p class="hero-desc-zh">用手机随时随地操作 OpenClaw 和 Claude Code，摆脱终端束缚</p>
-    <p class="hero-desc-en">Use OpenClaw &amp; Claude Code from your phone via Telegram &amp; WeChat Work. No terminal needed.</p>
+    <p class="hero-sub-en">Your AI engineer, in your pocket.</p>
+    <p class="hero-desc-zh">不是聊天机器人。是你口袋里的 AI 员工。</p>
+    <p class="hero-desc-zh">Claude Anywhere 让你随时随地读写文件、执行命令、分析图片、管理代码</p>
+    <p class="hero-desc-en">Read files, write code, run scripts, analyze images &mdash; from Telegram, WeChat Work, or QQ. Anywhere.</p>
     <div class="hero-actions">
-      <a href="https://github.com/yizhao1978/claude-anywhere" class="btn-primary">⬇ Download Free</a>
+      <a href="#setup" class="btn-primary">⚡ 3 步上手 / Get Started</a>
       <a href="https://claudeanywhere.gumroad.com/l/claude-anywhere" class="btn-secondary">✦ Get Pro — $4.99/mo</a>
     </div>
   </div>
@@ -492,49 +526,49 @@
     <div class="section-header">
       <div class="section-divider"></div>
       <h2>功能特性 <span class="grad-text">Features</span></h2>
-      <p class="sub-zh">一切你需要的，都在手机上</p>
-      <p class="sub-en">Everything you need, right in your pocket.</p>
+      <p class="sub-zh">Claude Anywhere 的能力，在手机上随时调用</p>
+      <p class="sub-en">Everything Claude Anywhere can do, right in your pocket.</p>
     </div>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">📱</div>
-        <div class="feature-zh">Telegram &amp; 企业微信</div>
-        <div class="feature-en">Telegram &amp; WeChat Work support</div>
+        <div class="feature-zh">三平台支持</div>
+        <div class="feature-en">Telegram, WeChat Work &amp; QQ</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📂</div>
+        <div class="feature-zh">读写文件</div>
+        <div class="feature-en">Read &amp; write files remotely</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-zh">执行命令</div>
+        <div class="feature-en">Run commands on your server</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📷</div>
+        <div class="feature-zh">图片分析</div>
+        <div class="feature-en">Image analysis</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <div class="feature-zh">文件分析</div>
+        <div class="feature-en">PDF, Excel, CSV, code analysis</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <div class="feature-zh">会话恢复</div>
+        <div class="feature-en">Cross-device session resume</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⏰</div>
+        <div class="feature-zh">定时任务</div>
+        <div class="feature-en">Scheduled tasks &amp; cron</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon">💬</div>
         <div class="feature-zh">多轮对话</div>
         <div class="feature-en">Multi-turn conversations</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📷</div>
-        <div class="feature-zh">图片识别</div>
-        <div class="feature-en">Image recognition</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📄</div>
-        <div class="feature-zh">文件分析</div>
-        <div class="feature-en">File analysis</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔄</div>
-        <div class="feature-zh">会话恢复</div>
-        <div class="feature-en">Session resume (/sessions, /resume)</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <div class="feature-zh">会话持久化</div>
-        <div class="feature-en">Session persistence</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <div class="feature-zh">无广告 <span style="color:var(--orange);font-size:12px;">Pro</span></div>
-        <div class="feature-en">No ads (Pro)</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">♾️</div>
-        <div class="feature-zh">无限对话 <span style="color:var(--orange);font-size:12px;">Pro</span></div>
-        <div class="feature-en">Unlimited messages (Pro)</div>
       </div>
     </div>
   </div>
@@ -620,8 +654,8 @@
           </li>
           <li>
             <div>
-              <span class="li-zh">企业微信支持</span>
-              <span class="li-en">WeChat Work support</span>
+              <span class="li-zh">企业微信 + QQ 支持</span>
+              <span class="li-en">WeChat Work + QQ support</span>
             </div>
           </li>
           <li>
@@ -637,38 +671,119 @@
   </div>
 </section>
 
-<!-- QUICK START -->
-<section id="quickstart">
+<!-- SETUP — 3 Platform Cards -->
+<section id="setup">
   <div class="section-inner">
     <div class="section-header">
       <div class="section-divider"></div>
-      <h2>快速开始 <span class="grad-text">Quick Start</span></h2>
-      <p class="sub-zh">4 步启动，5 分钟上手</p>
-      <p class="sub-en">4 steps, up and running in 5 minutes.</p>
+      <h2>3 步上手 <span class="grad-text">Setup</span></h2>
+      <p class="sub-zh">选择你的平台，3 步搞定</p>
+      <p class="sub-en">Pick your platform. 3 steps. Done.</p>
     </div>
-    <div class="quickstart-steps">
-      <div class="qs-step">
-        <div class="qs-num">1</div>
-        <p>克隆仓库 · Clone repo</p>
+    <div class="setup-grid">
+
+      <!-- Telegram -->
+      <div class="setup-card" id="setup-telegram">
+        <div class="setup-card-header">
+          <div class="setup-card-title">💬 Telegram</div>
+          <div class="setup-card-time">~3 min</div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">1</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">创建 Bot / Create Bot</div>
+            <div class="setup-step-desc">打开 Telegram → 搜索 @BotFather → 发送 /newbot → 复制 Token<br>Open Telegram → Search @BotFather → Send /newbot → Copy token</div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">2</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">安装配置 / Install &amp; Configure</div>
+            <div class="setup-step-desc">
+              <code>git clone https://github.com/yizhao1978/claude-anywhere.git</code><br>
+              <code>cd claude-anywhere &amp;&amp; npm install</code><br>
+              <code>cp .env.example .env</code><br>
+              填入 TELEGRAM_BOT_TOKEN / Fill in your token
+            </div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">3</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">启动 / Start</div>
+            <div class="setup-step-desc"><code>npm run telegram</code><br>看到 "Bot started" 即成功 ✅</div>
+          </div>
+        </div>
       </div>
-      <div class="qs-step">
-        <div class="qs-num">2</div>
-        <p>安装依赖 · Install dependencies</p>
+
+      <!-- WeChat Work -->
+      <div class="setup-card" id="setup-wecom">
+        <div class="setup-card-header">
+          <div class="setup-card-title">💼 企业微信</div>
+          <div class="setup-card-time">~5 min</div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">1</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">创建 AI Bot</div>
+            <div class="setup-step-desc">登录 work.weixin.qq.com → 应用管理 → AI助手 → 创建机器人<br>记录 Bot ID 和 Secret</div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">2</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">安装配置 / Install &amp; Configure</div>
+            <div class="setup-step-desc">
+              <code>git clone https://github.com/yizhao1978/claude-anywhere.git</code><br>
+              <code>cd claude-anywhere &amp;&amp; npm install</code><br>
+              <code>cp .env.example .env</code><br>
+              填入 WECOM_BOT_ID 和 WECOM_SECRET
+            </div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">3</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">启动 / Start</div>
+            <div class="setup-step-desc"><code>npm run wecom</code><br>看到 "Bot started" 即成功 ✅</div>
+          </div>
+        </div>
       </div>
-      <div class="qs-step">
-        <div class="qs-num">3</div>
-        <p>填入 Token · Configure .env</p>
+
+      <!-- QQ -->
+      <div class="setup-card" id="setup-qq">
+        <div class="setup-card-header">
+          <div class="setup-card-title">🐧 QQ</div>
+          <div class="setup-card-time">~5 min</div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">1</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">创建 QQ 机器人 / Create QQ Bot</div>
+            <div class="setup-step-desc">打开 <code>q.qq.com/qqbot/openclaw</code> → 手机 QQ 扫码 → 创建机器人<br>获取 AppID 和 AppSecret</div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">2</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">安装配置 / Install &amp; Configure</div>
+            <div class="setup-step-desc">
+              <code>git clone https://github.com/yizhao1978/claude-anywhere.git</code><br>
+              <code>cd claude-anywhere &amp;&amp; npm install</code><br>
+              <code>cp .env.example .env</code><br>
+              填入 QQ_APP_ID 和 QQ_APP_SECRET
+            </div>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="setup-step-num">3</div>
+          <div class="setup-step-content">
+            <div class="setup-step-title">启动 / Start</div>
+            <div class="setup-step-desc"><code>npm run qq</code><br>看到 "Bot started" 即成功 ✅</div>
+          </div>
+        </div>
       </div>
-      <div class="qs-step">
-        <div class="qs-num">4</div>
-        <p>启动服务 · Start service</p>
-      </div>
-    </div>
-    <div class="code-block">
-      <div><span class="cmd-num">1</span><span class="cmd">git clone</span> https://github.com/yizhao1978/claude-anywhere.git</div>
-      <div><span class="cmd-num">2</span><span class="cmd">cd</span> claude-anywhere &amp;&amp; <span class="cmd">npm install</span></div>
-      <div><span class="cmd-num">3</span><span class="cmd">cp</span> .env.example .env &amp;&amp; <span class="cmd">nano</span> .env &nbsp;&nbsp;<span class="comment"># 填入 token · fill in your token</span></div>
-      <div><span class="cmd-num">4</span><span class="cmd">npm run</span> telegram &nbsp;&nbsp;<span class="comment"># 或 · or: npm run wecom</span></div>
+
     </div>
   </div>
 </section>

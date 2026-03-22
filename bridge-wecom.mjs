@@ -330,7 +330,7 @@ async function start() {
     try {
       const welcome = pro
         ? "Claude Anywhere Pro 已就绪。\n/new 新对话 | /sessions 历史 | /help 帮助"
-        : "Claude Code 助手已就绪（免费版）。\n发文字即可对话。/status 查看用量 | /help 帮助";
+        : "Claude Anywhere 已就绪（免费版）。\n发文字即可对话。/status 查看用量 | /help 帮助";
       await wsClient.replyWelcome(frame, { msgtype: "text", text: { content: welcome } });
     } catch (e) {
       core.logger.warn("Welcome message failed:", e?.message);

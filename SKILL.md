@@ -1,7 +1,7 @@
 ---
 name: claude-anywhere
-description: "不是聊天机器人，是你口袋里的AI员工。把Claude Code的全部能力（读写文件、执行命令、代码操作）带到手机上，结合OpenClaw技能生态，随时随地操控你的电脑。Not a chatbot — your AI engineer in your pocket. Claude Code + OpenClaw, via Telegram & WeChat Work."
-version: 1.5.0
+description: "不是聊天机器人，是你口袋里的AI员工。Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地读写文件、执行命令、分析图片、管理代码。Not a chatbot — your AI engineer in your pocket. Claude Anywhere lets you read/write files, execute commands, analyze images, manage code — from Telegram, WeChat Work, or QQ, anywhere."
+version: 1.5.1
 metadata:
   openclaw:
     requires:
@@ -17,24 +17,28 @@ metadata:
 不是聊天机器人。是你口袋里的 AI 员工。
 Not a chatbot. Your AI engineer, in your pocket.
 
-读文件、写代码、跑脚本、分析数据——在地铁上也能做。
-Read files, write code, run scripts, analyze data — even on the subway.
+Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地读写文件、执行命令、分析图片、管理代码——在手机上也能做到电脑上的一切。
+Claude Anywhere gives you the power to read/write files, execute commands, analyze images, manage code — from Telegram, WeChat Work, or QQ, anywhere.
 
-Claude Code 的全部能力 + OpenClaw 技能生态，通过 Telegram / 企业微信随时随地操控你的电脑。
-Every power of Claude Code + OpenClaw skill ecosystem, via Telegram & WeChat Work.
+## 3步上手 / 3 Steps to Start
 
-## Setup
+### Telegram
+1. 在 Telegram 搜索 @BotFather，发 /newbot，复制 Token
+2. `git clone https://github.com/yizhao1978/claude-anywhere.git && cd claude-anywhere && npm install && cp .env.example .env`
+3. 填入 Token → `npm run telegram` → 完成
 
-1. Create a Telegram bot via @BotFather, copy the token
-2. Copy .env.example to .env and set TELEGRAM_BOT_TOKEN
-3. Run: npm install && npm start
-4. Message your bot on Telegram
+### 企业微信 WeChat Work
+1. 登录 work.weixin.qq.com → 应用管理 → AI助手 → 创建机器人，记录 Bot ID 和 Secret
+2. `git clone https://github.com/yizhao1978/claude-anywhere.git && cd claude-anywhere && npm install && cp .env.example .env`
+3. 填入 Bot ID + Secret → `npm run wecom` → 完成
 
-## WeChat Work Setup (企业微信)
+### QQ
+1. 打开 https://q.qq.com/qqbot/openclaw/index.html → 扫码 → 创建机器人 → 获取 AppID + AppSecret
+2. `git clone https://github.com/yizhao1978/claude-anywhere.git && cd claude-anywhere && npm install && cp .env.example .env`
+3. 填入 AppID + AppSecret → `npm run qq` → 完成
 
-1. Create a WeCom AI bot, copy Bot ID and Secret
-2. Set WECOM_BOT_ID and WECOM_SECRET in .env
-3. Run: npm run wecom
+### 三平台一键启动
+配好所有 Token → `npm start` → 自动启动已配置的平台
 
 ## Free Tier (no LICENSE_KEY)
 - 5 messages/day

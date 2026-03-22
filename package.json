@@ -1,8 +1,8 @@
 {
   "name": "claude-anywhere",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "type": "module",
-  "description": "Use Claude Code anywhere via Telegram, WeChat Work & QQ — no terminal needed",
+  "description": "Claude Anywhere — read files, write code, run scripts, analyze images from Telegram, WeChat Work & QQ",
   "main": "start-all.mjs",
   "scripts": {
     "start": "node start-all.mjs",
