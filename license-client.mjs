@@ -22,8 +22,12 @@ export function getMachineId() {
 
 /**
  * Get current license tier ("free" | "pro").
- * Calls license server if LICENSE_KEY is set; returns "free" otherwise.
+ * If LICENSE_KEY is set, calls license server to validate.
+ * Returns "free" when no key or server unreachable (with local fallback).
  * Results are cached for 5 minutes.
+ *
+ * Returns full info object:
+ *   { tier, daily_count?, daily_limit?, trial_days_remaining? }
  */
 export async function getLicenseTier() {
   const now = Date.now();
@@ -63,6 +67,14 @@ export async function getLicenseTier() {
   // Keep previous cached tier on transient error; else default to free
   if (_cachedTier) return _cachedTier;
   return "free";
+}
+
+/**
+ * Convenience method: returns true if current license is Pro.
+ */
+export async function isPro() {
+  const tier = await getLicenseTier();
+  return tier === "pro";
 }
 
 /**

@@ -1,7 +1,7 @@
 ---
 name: claude-anywhere
 description: Use Claude Code from Telegram or WeChat Work — no terminal needed. 通过Telegram或企业微信随时随地使用Claude Code
-version: 1.1.0
+version: 2.0.0
 metadata:
   openclaw:
     requires:
@@ -9,7 +9,7 @@ metadata:
       env: [TELEGRAM_BOT_TOKEN]
     primaryEnv: TELEGRAM_BOT_TOKEN
     emoji: "📱"
-    homepage: https://gumroad.com/l/claude-anywhere ($4.99/mo)
+    homepage: https://gumroad.com/l/claude-anywhere ($5.99/mo)
 ---
 
 # Claude Anywhere
@@ -30,16 +30,20 @@ Use Claude Code anywhere via Telegram or WeChat Work — no terminal needed.
 2. Set WECOM_BOT_ID and WECOM_SECRET in .env
 3. Run: npm run wecom
 
-## Free Tier (this version)
+## Free Tier (no LICENSE_KEY)
 - 5 messages/day
 - 7-day trial period
 - Single-turn conversations
 - Text only
-- WeChat Work: limited (single-turn, 5/day, 7-day trial)
+- Upgrade prompts on every reply
 
-## Pro ($4.99/mo) → https://gumroad.com/l/claude-anywhere
+## Pro ($5.99/mo) → https://gumroad.com/l/claude-anywhere
 - Unlimited messages
 - Multi-turn conversations with /resume
 - Image and file analysis
 - WeChat Work full support
 - No ads
+
+## License Activation
+
+Set LICENSE_KEY in .env and restart, or use /activate <key> command in the bot.
