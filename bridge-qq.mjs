@@ -2,20 +2,27 @@
 /**
  * bridge-qq.mjs — Claude Anywhere QQ Bot Bridge (thin shell)
  *
- * Uses QQ Bot official HTTP API (webhook mode).
+ * Uses QQ Bot official WebSocket gateway (same approach as @tencent-connect/openclaw-qqbot).
  * All business logic lives in core.mjs.
  *
  * QQ Bot limitations:
  *   - Cannot proactively push messages (only reply within interaction window)
  *   - /cron creation warns user about no push support
+ *
+ * WebSocket flow:
+ *   1. Get access token via POST https://bots.qq.com/app/getAppAccessToken
+ *   2. Get gateway URL via GET https://api.sgroup.qq.com/gateway
+ *   3. Connect WebSocket, receive Hello (op=10), send Identify (op=2)
+ *   4. Receive events (op=0), heartbeat (op=1), resume on disconnect
  */
 
-import { createServer } from "http";
+import WebSocket from "ws";
 import { randomUUID } from "crypto";
 import {
   writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync,
 } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 import { ClaudeAnywhere } from "./core.mjs";
 
 // Load .env if present
@@ -37,15 +44,28 @@ try {
 // ============ Config ============
 const QQ_APP_ID     = process.env.QQ_APP_ID;
 const QQ_APP_SECRET = process.env.QQ_APP_SECRET;
-const QQ_PORT       = parseInt(process.env.QQ_WEBHOOK_PORT || "9701", 10);
 
 if (!QQ_APP_ID || !QQ_APP_SECRET) {
   console.error("ERROR: QQ_APP_ID and QQ_APP_SECRET must be set in .env");
   process.exit(1);
 }
 
-const TMP_DIR = "/tmp/claude-anywhere-qq";
+const API_BASE  = "https://api.sgroup.qq.com";
+const TOKEN_URL = "https://bots.qq.com/app/getAppAccessToken";
+const TMP_DIR   = "/tmp/claude-anywhere-qq";
 mkdirSync(TMP_DIR, { recursive: true });
+
+// Intents (from QQ Bot official docs)
+const INTENTS = {
+  PUBLIC_GUILD_MESSAGES: 1 << 30,
+  DIRECT_MESSAGE: 1 << 12,
+  GROUP_AND_C2C: 1 << 25,
+};
+const FULL_INTENTS = INTENTS.PUBLIC_GUILD_MESSAGES | INTENTS.DIRECT_MESSAGE | INTENTS.GROUP_AND_C2C;
+
+// Reconnect config
+const RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000, 60000];
+const MAX_RECONNECT_ATTEMPTS = 100;
 
 // ============ Core instance ============
 const core = new ClaudeAnywhere({ platform: "qq" });
@@ -55,8 +75,7 @@ core.setCronResultHandler(async (jobId, jobName, userId, result) => {
   core.logger.warn(`QQ does not support proactive push. Cron result for job "${jobName}" (user ${userId}) cannot be delivered.`);
 });
 
-// ============ QQ API helpers ============
-
+// ============ Token management ============
 let _accessToken = null;
 let _tokenExpiry  = 0;
 
@@ -64,7 +83,7 @@ async function getAccessToken() {
   if (_accessToken && Date.now() < _tokenExpiry - 60_000) return _accessToken;
 
   try {
-    const res = await fetch("https://bots.qq.com/app/getAppAccessToken", {
+    const res = await fetch(TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ appId: QQ_APP_ID, clientSecret: QQ_APP_SECRET }),
@@ -85,19 +104,18 @@ async function getAccessToken() {
   }
 }
 
-const QQ_API_BASE = "https://api.sgroup.qq.com";
+// ============ API helpers ============
 
 async function qqApi(method, path, body) {
   const token = await getAccessToken();
   if (!token) return null;
 
   try {
-    const res = await fetch(`${QQ_API_BASE}${path}`, {
+    const res = await fetch(`${API_BASE}${path}`, {
       method,
       headers: {
         "Authorization": `QQBot ${token}`,
         "Content-Type": "application/json",
-        "X-Union-Appid": QQ_APP_ID,
       },
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(15_000),
@@ -114,30 +132,41 @@ async function qqApi(method, path, body) {
   }
 }
 
-/**
- * Reply to a C2C (private) message.
- */
+// Track msg_seq per msgId to handle multi-chunk replies
+const msgSeqMap = new Map();
+function getNextMsgSeq(msgId) {
+  const seq = (msgSeqMap.get(msgId) || 0) + 1;
+  msgSeqMap.set(msgId, seq);
+  // Cleanup old entries
+  if (msgSeqMap.size > 1000) {
+    const keys = [...msgSeqMap.keys()];
+    for (let i = 0; i < keys.length - 500; i++) msgSeqMap.delete(keys[i]);
+  }
+  return seq;
+}
+
 async function replyC2C(openid, msgId, content) {
   const chunks = core.splitText(content);
   for (const chunk of chunks) {
+    const msgSeq = getNextMsgSeq(msgId);
     await qqApi("POST", `/v2/users/${openid}/messages`, {
       content: chunk,
       msg_type: 0,
       msg_id: msgId,
+      msg_seq: msgSeq,
     });
   }
 }
 
-/**
- * Reply to a group message.
- */
 async function replyGroup(groupOpenid, msgId, content) {
   const chunks = core.splitText(content);
   for (const chunk of chunks) {
+    const msgSeq = getNextMsgSeq(msgId);
     await qqApi("POST", `/v2/groups/${groupOpenid}/messages`, {
       content: chunk,
       msg_type: 0,
       msg_id: msgId,
+      msg_seq: msgSeq,
     });
   }
 }
@@ -184,15 +213,17 @@ async function handleMessage(userId, text, replyFn) {
       }
     }
 
-    // Claude call
-    await replyFn(core.T.thinking);
+    // Call Claude
+    await replyFn("🤔 正在思考...");
     const sessionId = pro ? core.getSessionId(userId) : null;
     const result = await core.runClaude(text, sessionId);
 
-    if (pro && result.sessionId) core.updateSession(userId, result.sessionId, text.slice(0, 30));
+    if (pro && result.sessionId) {
+      core.updateSession(userId, result.sessionId, text.slice(0, 30));
+    }
 
     if (!result.text) {
-      await replyFn(core.T.noResponse);
+      await replyFn("Claude 没有返回结果，请重试。");
       return;
     }
 
@@ -201,109 +232,161 @@ async function handleMessage(userId, text, replyFn) {
     core.logger.info(`Reply (${pro ? "pro" : "free"}): ${result.text.length} chars`);
 
   } catch (err) {
-    core.logger.error("Message error:", err?.message || err);
+    core.logger.error("Message error:", err.message);
     if (String(err).includes("session") || String(err).includes("resume")) {
       core.deleteSession(userId);
     }
-    try { await replyFn(`处理出错: ${err?.message || err}`); } catch {}
+    await replyFn("处理出错: " + err.message);
   } finally {
     core.doneProcessing(msgId);
   }
 }
 
-// ============ Webhook server ============
+// ============ WebSocket Gateway ============
 
-const server = createServer(async (req, res) => {
-  if (req.method !== "POST") {
-    res.writeHead(200);
-    res.end("OK");
-    return;
+async function startGateway() {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    core.logger.error("Cannot start: failed to get access token");
+    process.exit(1);
   }
 
-  let body = "";
-  for await (const chunk of req) body += chunk;
-
-  try {
-    const payload = JSON.parse(body);
-
-    // QQ webhook validation (URL verification)
-    if (payload.op === 13) {
-      const eventBody = typeof payload.d === "string" ? JSON.parse(payload.d) : payload.d;
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ plain_token: eventBody.plain_token, signature: "" }));
-
-      // For proper signature verification, we'd need ed25519.
-      // For now, echo back the plain_token (works for initial setup).
-      core.logger.info("Webhook validation request received");
-      return;
-    }
-
-    res.writeHead(200);
-    res.end("OK");
-
-    // Process events asynchronously
-    const eventType = payload.t;
-    const data = typeof payload.d === "string" ? JSON.parse(payload.d) : payload.d;
-
-    if (!data) return;
-
-    // C2C (private) message
-    if (eventType === "C2C_MESSAGE_CREATE") {
-      const openid = data.author?.user_openid;
-      const msgId  = data.id;
-      const text   = data.content?.trim();
-      if (!openid || !text) return;
-
-      await handleMessage(openid, text, (content) => replyC2C(openid, msgId, content));
-      return;
-    }
-
-    // Group message (bot @mentioned)
-    if (eventType === "GROUP_AT_MESSAGE_CREATE") {
-      const groupOpenid = data.group_openid;
-      const userOpenid  = data.author?.member_openid;
-      const msgId       = data.id;
-      // Remove @bot mention from text
-      let text = data.content?.trim() || "";
-      text = text.replace(/<@!\d+>/g, "").trim();
-      if (!groupOpenid || !text) return;
-
-      const userId = userOpenid || groupOpenid;
-      await handleMessage(userId, text, (content) => replyGroup(groupOpenid, msgId, content));
-      return;
-    }
-
-    // Guild channel message
-    if (eventType === "AT_MESSAGE_CREATE") {
-      const channelId = data.channel_id;
-      const userId    = data.author?.id;
-      const msgId     = data.id;
-      let text = data.content?.trim() || "";
-      text = text.replace(/<@!\d+>/g, "").trim();
-      if (!channelId || !text) return;
-
-      await handleMessage(userId, text, async (content) => {
-        const chunks = core.splitText(content);
-        for (const chunk of chunks) {
-          await qqApi("POST", `/channels/${channelId}/messages`, {
-            content: chunk,
-            msg_id: msgId,
-          });
-        }
-      });
-      return;
-    }
-
-  } catch (e) {
-    core.logger.error("Webhook parse error:", e.message);
-    if (!res.headersSent) { res.writeHead(200); res.end("OK"); }
+  // Get gateway URL
+  const gatewayData = await qqApi("GET", "/gateway");
+  if (!gatewayData?.url) {
+    core.logger.error("Cannot get gateway URL");
+    process.exit(1);
   }
-});
 
-server.listen(QQ_PORT, () => {
-  core.logger.info(`QQ Bot webhook server listening on port ${QQ_PORT}`);
-  core.logger.info("Waiting for messages...");
-});
+  let sessionId = null;
+  let lastSeq = null;
+  let heartbeatTimer = null;
+  let reconnectAttempts = 0;
+  let ws = null;
 
-process.on("SIGINT",  () => { server.close(); process.exit(0); });
-process.on("SIGTERM", () => { server.close(); process.exit(0); });
+  function connect() {
+    core.logger.info(`Connecting to QQ gateway: ${gatewayData.url}`);
+    ws = new WebSocket(gatewayData.url);
+
+    ws.on("open", () => {
+      core.logger.info("WebSocket connected");
+      reconnectAttempts = 0;
+    });
+
+    ws.on("message", async (raw) => {
+      let payload;
+      try {
+        payload = JSON.parse(raw.toString());
+      } catch { return; }
+
+      const { op, t, d, s } = payload;
+      if (s) lastSeq = s;
+
+      switch (op) {
+        case 10: // Hello — send Identify or Resume
+          if (sessionId && lastSeq !== null) {
+            core.logger.info(`Resuming session ${sessionId}`);
+            ws.send(JSON.stringify({
+              op: 6,
+              d: { token: `QQBot ${_accessToken}`, session_id: sessionId, seq: lastSeq },
+            }));
+          } else {
+            core.logger.info(`Sending Identify with intents: ${FULL_INTENTS}`);
+            ws.send(JSON.stringify({
+              op: 2,
+              d: { token: `QQBot ${_accessToken}`, intents: FULL_INTENTS, shard: [0, 1] },
+            }));
+          }
+
+          // Start heartbeat
+          const interval = d?.heartbeat_interval || 30000;
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+          heartbeatTimer = setInterval(() => {
+            if (ws?.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ op: 1, d: lastSeq }));
+            }
+          }, interval);
+          break;
+
+        case 0: // Dispatch — events
+          if (t === "READY") {
+            sessionId = d?.session_id;
+            core.logger.info(`Ready! Session: ${sessionId}`);
+          } else if (t === "RESUMED") {
+            core.logger.info("Session resumed");
+          } else if (t === "C2C_MESSAGE_CREATE") {
+            // Private chat message
+            const openid = d?.author?.user_openid;
+            const msgId = d?.id;
+            const content = d?.content?.trim();
+            if (openid && content) {
+              handleMessage(openid, content, (text) => replyC2C(openid, msgId, text));
+            }
+          } else if (t === "GROUP_AT_MESSAGE_CREATE") {
+            // Group @bot message
+            const groupOpenid = d?.group_openid;
+            const msgId = d?.id;
+            let content = d?.content?.trim();
+            // Remove @bot mention prefix
+            if (content) content = content.replace(/^<@!\d+>\s*/, "").trim();
+            if (groupOpenid && content) {
+              const userId = d?.author?.member_openid || groupOpenid;
+              handleMessage(userId, content, (text) => replyGroup(groupOpenid, msgId, text));
+            }
+          }
+          break;
+
+        case 9: // Invalid session
+          core.logger.warn("Invalid session, reconnecting with new Identify");
+          sessionId = null;
+          lastSeq = null;
+          ws.close();
+          break;
+
+        case 11: // Heartbeat ACK
+          break;
+
+        default:
+          core.logger.info(`Unknown op: ${op}`);
+      }
+    });
+
+    ws.on("close", (code, reason) => {
+      core.logger.warn(`WebSocket closed: ${code} ${reason}`);
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+      scheduleReconnect();
+    });
+
+    ws.on("error", (err) => {
+      core.logger.error(`WebSocket error: ${err.message}`);
+    });
+  }
+
+  function scheduleReconnect() {
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      core.logger.error("Max reconnect attempts reached, exiting");
+      process.exit(1);
+    }
+    const delay = RECONNECT_DELAYS[Math.min(reconnectAttempts, RECONNECT_DELAYS.length - 1)];
+    reconnectAttempts++;
+    core.logger.info(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+
+    setTimeout(async () => {
+      // Refresh token before reconnect
+      await getAccessToken();
+      connect();
+    }, delay);
+  }
+
+  connect();
+}
+
+// ============ Start ============
+
+core.logger.info("Claude Anywhere v2 (QQ Bot) starting...");
+startGateway();
+
+process.on("SIGINT",  () => process.exit(0));
+process.on("SIGTERM", () => process.exit(0));
+
+core.logger.info("Bot started. Waiting for messages...");
