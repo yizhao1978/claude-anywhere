@@ -189,11 +189,13 @@ Examples:
 
   _runClaude(prompt) {
     return new Promise((resolve) => {
+      const knowledgeDirs = (process.env.KNOWLEDGE_DIR || "").split(",").map(d => d.trim()).filter(Boolean);
       const args = [
         "-p", prompt,
         "--max-turns", "100",
         "--output-format", "json",
         "--dangerously-skip-permissions",
+        ...knowledgeDirs.flatMap(d => ["--add-dir", d]),
       ];
 
       const proc = spawn(this.claudePath, args, {

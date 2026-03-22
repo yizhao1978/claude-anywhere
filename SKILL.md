@@ -1,7 +1,7 @@
 ---
 name: claude-anywhere
 description: Use Claude Code from Telegram or WeChat Work — no terminal needed. 通过Telegram或企业微信随时随地使用Claude Code
-version: 1.2.0
+version: 1.3.0
 metadata:
   openclaw:
     requires:

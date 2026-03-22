@@ -1,6 +1,6 @@
 {
   "name": "claude-anywhere",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "type": "module",
   "description": "Use Claude Code anywhere via Telegram & WeChat Work — no terminal needed",
   "main": "bridge-telegram.mjs",

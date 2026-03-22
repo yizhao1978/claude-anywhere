@@ -47,6 +47,7 @@ if (!BOT_TOKEN) {
 const CLAUDE_PATH       = process.env.CLAUDE_PATH?.trim() || "claude";
 const CLAUDE_CWD        = process.env.CLAUDE_CWD?.trim()  || process.cwd();
 const CLAUDE_TIMEOUT_MS = parseInt(process.env.CLAUDE_TIMEOUT_MS || "600000", 10);
+const KNOWLEDGE_DIRS    = (process.env.KNOWLEDGE_DIR || "").split(",").map(d => d.trim()).filter(Boolean);
 const MAX_REPLY_LENGTH  = parseInt(process.env.MAX_REPLY_LENGTH  || "4000",   10);
 const MAX_STDERR_LEN    = 1000;
 const TMP_DIR           = "/tmp/claude-anywhere-telegram";
@@ -331,6 +332,7 @@ function runClaude(message, sessionId = null, imagePaths = []) {
     ];
 
     if (sessionId) args.push("--resume", sessionId);
+    for (const dir of KNOWLEDGE_DIRS) args.push("--add-dir", dir);
 
     logger.info(`Claude: ${sessionId ? "resume " + sessionId.slice(0, 8) : "new"} | ${message.slice(0, 80)}`);
 

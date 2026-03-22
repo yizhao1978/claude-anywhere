@@ -50,6 +50,7 @@ if (!BOT_ID || !SECRET) {
 const CLAUDE_PATH       = process.env.CLAUDE_PATH?.trim() || "claude";
 const CLAUDE_CWD        = process.env.CLAUDE_CWD?.trim()  || process.cwd();
 const CLAUDE_TIMEOUT_MS = parseInt(process.env.CLAUDE_TIMEOUT_MS || "600000", 10);
+const KNOWLEDGE_DIRS    = (process.env.KNOWLEDGE_DIR || "").split(",").map(d => d.trim()).filter(Boolean);
 const MAX_REPLY_LENGTH  = parseInt(process.env.MAX_REPLY_LENGTH  || "4000",   10);
 const STREAM_TIMEOUT_MS = 5 * 60 * 1000; // 5 min — WeCom limit is 6 min
 const MAX_STDERR_LEN    = 1000;
@@ -265,6 +266,7 @@ function runClaude(message, sessionId = null) {
       "--dangerously-skip-permissions",
     ];
     if (sessionId) args.push("--resume", sessionId);
+    for (const dir of KNOWLEDGE_DIRS) args.push("--add-dir", dir);
 
     logger.info(`Claude: ${sessionId ? "resume " + sessionId.slice(0, 8) : "new"} | ${message.slice(0, 80)}`);
 
