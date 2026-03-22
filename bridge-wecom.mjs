@@ -60,9 +60,9 @@ const SESSIONS_FILE = join(homedir(), ".claude-anywhere", "wecom-sessions.json")
 // Free tier constants (Chinese)
 const FREE_DAILY_LIMIT  = 5;
 const TRIAL_DAYS        = 7;
-const UPGRADE_AD        = "\n\n💡 升级Pro版：无限对话、多轮会话、图片文件分析 → 联系 support@claudeanywhere.com（¥35.9/月）";
-const LIMIT_MSG         = "⚠️ 今日免费额度已用完（5/5）。升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）";
-const TRIAL_EXPIRED_MSG = "⚠️ 免费试用已到期（7天）。升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）";
+const UPGRADE_AD        = "\n\n💡 升级Pro版：无限对话、多轮会话、图片文件分析 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）";
+const LIMIT_MSG         = "⚠️ 今日免费额度已用完（5/5）。升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）";
+const TRIAL_EXPIRED_MSG = "⚠️ 免费试用已到期（7天）。升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）";
 
 // Free tier state dir
 const STATE_DIR  = join(homedir(), ".claude-anywhere-free");
@@ -145,13 +145,13 @@ function getStatusText(userId) {
   const today = todayStr();
   const user  = appState.users[userId];
   if (!user) {
-    return `📊 免费试用版\n今日：0/${FREE_DAILY_LIMIT} 条\n剩余试用：${TRIAL_DAYS} 天\n\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）`;
+    return `📊 免费试用版\n今日：0/${FREE_DAILY_LIMIT} 条\n剩余试用：${TRIAL_DAYS} 天\n\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）`;
   }
   const used      = user.daily[today] || 0;
   const remaining = Math.max(0, FREE_DAILY_LIMIT - used);
   const daysDiff  = Math.floor((new Date(today) - new Date(user.firstUsed)) / 86400000);
   const trialLeft = Math.max(0, TRIAL_DAYS - daysDiff);
-  return `📊 免费试用版\n今日：${used}/${FREE_DAILY_LIMIT} 条，剩余 ${remaining} 条\n剩余试用天数：${trialLeft} 天\n\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）`;
+  return `📊 免费试用版\n今日：${used}/${FREE_DAILY_LIMIT} 条，剩余 ${remaining} 条\n剩余试用天数：${trialLeft} 天\n\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）`;
 }
 
 // ============ Pro mode: session persistence ============
@@ -389,7 +389,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
         await wsClient.replyStream(frame, streamId, "✅ 已开始新对话。", true);
       } else {
         await wsClient.replyStream(frame, streamId,
-          "✅ 每条消息默认就是独立对话（免费版）。\n💡 升级Pro版可获得多轮会话 → 联系 support@claudeanywhere.com（¥35.9/月）",
+          "✅ 每条消息默认就是独立对话（免费版）。\n💡 升级Pro版可获得多轮会话 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
           true
         );
       }
@@ -412,7 +412,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
     case "sessions":
       if (!pro) {
         await wsClient.replyStream(frame, streamId,
-          "⚠️ /sessions 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）",
+          "⚠️ /sessions 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
           true
         );
         break;
@@ -435,7 +435,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
     case "resume_help":
       if (!pro) {
         await wsClient.replyStream(frame, streamId,
-          "⚠️ /resume 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）",
+          "⚠️ /resume 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
           true
         );
         break;
@@ -446,7 +446,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
     case "resume": {
       if (!pro) {
         await wsClient.replyStream(frame, streamId,
-          "⚠️ /resume 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）",
+          "⚠️ /resume 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
           true
         );
         break;
@@ -466,7 +466,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
     case "activate": {
       if (!command.key) {
         await wsClient.replyStream(frame, streamId,
-          "用法：/activate <激活码>\n\n购买Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）",
+          "用法：/activate <激活码>\n\n购买Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
           true
         );
         break;
@@ -476,7 +476,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
       await wsClient.replyStream(frame, `stream_${Date.now()}_${randomUUID().slice(0, 8)}`,
         result.success
           ? `✅ ${result.message}\n\n请在 .env 中设置 LICENSE_KEY=${command.key} 并重启服务。`
-          : `❌ ${result.message}\n\n购买Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）`,
+          : `❌ ${result.message}\n\n购买Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）`,
         true
       );
       break;
@@ -508,7 +508,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
           "• 7天试用期\n" +
           "• 单轮对话（不续接）\n" +
           "• 仅支持文字\n\n" +
-          "💡 升级Pro版：无限对话、多轮会话、图片文件分析 → 联系 support@claudeanywhere.com（¥35.9/月）",
+          "💡 升级Pro版：无限对话、多轮会话、图片文件分析 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
           true
         );
       }
@@ -618,7 +618,7 @@ async function handleImageMessage(wsClient, frame) {
     if (!pro) {
       const streamId = `stream_${Date.now()}_${randomUUID().slice(0, 8)}`;
       await wsClient.replyStream(frame, streamId,
-        "📷 图片分析是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）",
+        "📷 图片分析是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
         true
       );
       return;
@@ -665,7 +665,7 @@ async function handleFileMessage(wsClient, frame) {
     if (!pro) {
       const streamId = `stream_${Date.now()}_${randomUUID().slice(0, 8)}`;
       await wsClient.replyStream(frame, streamId,
-        "📄 文件分析是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥35.9/月）",
+        "📄 文件分析是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
         true
       );
       return;
