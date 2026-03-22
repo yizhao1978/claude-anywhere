@@ -9,7 +9,7 @@ metadata:
       env: [TELEGRAM_BOT_TOKEN]
     primaryEnv: TELEGRAM_BOT_TOKEN
     emoji: "📱"
-    homepage: https://claudeanywhere.gumroad.com/l/claude-anywhere ($4.99/mo)
+    homepage: https://claudeanywhere.gumroad.com/l/claude-anywhere ($5.99/mo)
 ---
 
 # Claude Anywhere
@@ -37,7 +37,7 @@ Use Claude Code anywhere via Telegram or WeChat Work — no terminal needed.
 - Text only
 - Upgrade prompts on every reply
 
-## Pro ($4.99/mo) → https://claudeanywhere.gumroad.com/l/claude-anywhere
+## Pro ($5.99/mo) → https://claudeanywhere.gumroad.com/l/claude-anywhere
 - Unlimited messages
 - Multi-turn conversations with /resume
 - Image and file analysis

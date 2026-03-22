@@ -20,7 +20,7 @@ Use Claude Code anywhere via Telegram & WeChat Work — no terminal needed.
 | 广告 / Ads | ✓ | ✗ |
 | 会话历史 / Session history | ✗ | ✓ |
 
-**升级 Pro → [claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)（$4.99/月）**
+**升级 Pro → [claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)（$5.99/月）**
 
 ---
 
@@ -324,7 +324,7 @@ Pro unlocks everything:
 - ✅ 会话历史，可随时恢复对话 / Session history with resume support
 - ✅ 无广告 / No ads
 
-**购买地址 / Purchase:** [claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)（$4.99/月）
+**购买地址 / Purchase:** [claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)（$5.99/月）
 
 购买后，使用 `/activate CA-XXXX-XXXX-XXXX-XXXX` 命令激活。
 After purchase, activate with: `/activate CA-XXXX-XXXX-XXXX-XXXX`
