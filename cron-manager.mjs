@@ -74,6 +74,117 @@ export class CronManager {
     }
   }
 
+  // ============ Natural language parsing ============
+
+  /**
+   * Parse a natural language description into a scheduled task spec.
+   * Calls claude -p with a lightweight model (--model sonnet) for fast, cheap parsing.
+   * @param {string} userInput  - Raw user description, e.g. "每天早上9点检查服务器"
+   * @returns {Promise<{ ok: boolean, parsed?: { type, schedule, prompt, name }, error?: string }>}
+   */
+  parseNaturalLanguage(userInput) {
+    const PARSE_TIMEOUT_MS = 30_000;
+    const now = new Date().toISOString();
+
+    const systemPrompt = `You are a cron job parser. Parse the following natural language request into a scheduled task.
+
+User request: "${userInput.replace(/"/g, '\\"')}"
+Current time: ${now}
+Timezone: Asia/Shanghai
+
+Respond in JSON only, no other text:
+{
+  "type": "cron" or "once",
+  "schedule": "cron expression (5 fields)" or "ISO 8601 datetime for once",
+  "prompt": "the task/prompt to execute at scheduled time",
+  "name": "short name for the task (max 20 chars)"
+}
+
+Examples:
+- "每天早上9点检查服务器" → {"type":"cron","schedule":"0 9 * * *","prompt":"检查服务器状态并汇报","name":"检查服务器"}
+- "30分钟后提醒我开会" → {"type":"once","schedule":"${this._addMinutes(now, 30)}","prompt":"提醒：该开会了","name":"开会提醒"}
+- "every weekday at 8pm sync data" → {"type":"cron","schedule":"0 20 * * 1-5","prompt":"sync data","name":"sync data"}`;
+
+    return new Promise((resolve) => {
+      const args = [
+        "-p", systemPrompt,
+        "--max-turns", "1",
+        "--output-format", "text",
+        "--model", "sonnet",
+        "--dangerously-skip-permissions",
+      ];
+
+      const proc = spawn(this.claudePath, args, {
+        cwd: this.claudeCwd,
+        env: { ...process.env },
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      let stdout = "";
+      let stderr = "";
+      let timedOut = false;
+
+      const timer = setTimeout(() => {
+        timedOut = true;
+        proc.kill("SIGTERM");
+        logger.warn("Natural language parse timed out after 30s");
+      }, PARSE_TIMEOUT_MS);
+
+      proc.stdout.on("data", c => { stdout += c.toString(); });
+      proc.stderr.on("data", c => { if (stderr.length < MAX_STDERR_LEN) stderr += c.toString(); });
+
+      proc.on("close", code => {
+        clearTimeout(timer);
+        proc.stdout.removeAllListeners();
+        proc.stderr.removeAllListeners();
+        proc.removeAllListeners();
+
+        if (timedOut) {
+          resolve({ ok: false, error: "Parse timed out (30s). Please try again." });
+          return;
+        }
+
+        const raw = stdout.trim();
+        if (!raw) {
+          logger.error(`Parse claude exit ${code}: ${stderr.slice(0, 200)}`);
+          resolve({ ok: false, error: "No response from Claude. Please try again." });
+          return;
+        }
+
+        // Extract JSON from response (may be wrapped in markdown code block)
+        const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, raw];
+        const jsonStr = jsonMatch[1].trim();
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (!parsed.type || !parsed.schedule || !parsed.prompt || !parsed.name) {
+            resolve({ ok: false, error: "Could not understand your request. Please describe it differently." });
+            return;
+          }
+          resolve({ ok: true, parsed });
+        } catch {
+          logger.warn(`Parse JSON failed, raw: ${raw.slice(0, 200)}`);
+          resolve({ ok: false, error: "Could not understand your request. Please describe it differently." });
+        }
+      });
+
+      proc.on("error", err => {
+        clearTimeout(timer);
+        proc.stdout.removeAllListeners();
+        proc.stderr.removeAllListeners();
+        proc.removeAllListeners();
+        resolve({ ok: false, error: `Failed to start Claude: ${err.message}` });
+      });
+
+      proc.stdin.end();
+    });
+  }
+
+  /** Helper: add minutes to an ISO string, returns new ISO string */
+  _addMinutes(isoStr, minutes) {
+    return new Date(new Date(isoStr).getTime() + minutes * 60_000).toISOString();
+  }
+
   // ============ Claude execution ============
 
   _runClaude(prompt) {

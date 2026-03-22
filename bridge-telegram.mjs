@@ -527,20 +527,13 @@ bot.onText(/^\/cron(?:\s+(.*))?$/s, async (msg, match) => {
   if (!sub || sub === "help") {
     await bot.sendMessage(chatId,
       "⏰ *Scheduled Tasks — /cron*\n\n" +
-      "*Add recurring job:*\n" +
-      "`/cron add <cron expr> <prompt>`\n" +
-      "e.g. `/cron add 0 9 * * * Check server status`\n" +
-      "e.g. `/cron add */30 * * * * Check download progress`\n\n" +
-      "*Add one-time job:*\n" +
-      "`/cron once <time> <prompt>`\n" +
-      "e.g. `/cron once 2026-03-23T09:00 Remind me to attend meeting`\n" +
-      "e.g. `/cron once +30m Remind me in 30 minutes`\n" +
-      "e.g. `/cron once +2h Check the results`\n\n" +
-      "*Other:*\n" +
-      "`/cron list` — List your scheduled jobs\n" +
-      "`/cron remove <id>` — Delete a job\n" +
+      "`/cron <description>` — Schedule a task (natural language)\n" +
+      "e.g. `/cron every day at 9am check server status`\n" +
+      "e.g. `/cron every weekday at 8pm sync data`\n" +
+      "e.g. `/cron in 30 minutes remind me about the meeting`\n\n" +
+      "`/cron list` — List scheduled tasks\n" +
+      "`/cron remove <id>` — Remove a task\n" +
       "`/cron help` — Show this help\n\n" +
-      "Relative time: `+30m` `+2h` `+1d`\n" +
       "Max 10 jobs per user.",
       { parse_mode: "Markdown" }
     );
@@ -588,77 +581,48 @@ bot.onText(/^\/cron(?:\s+(.*))?$/s, async (msg, match) => {
     return;
   }
 
-  // /cron add <expr> <prompt>
-  // Cron expression is 5 parts (min hr dom mon dow), then the rest is the prompt
-  if (sub === "add") {
-    const rest = args.slice("add".length).trim();
-    const parts = rest.split(/\s+/);
-    if (parts.length < 6) {
-      await bot.sendMessage(chatId,
-        "Usage: `/cron add <min> <hour> <dom> <month> <dow> <prompt>`\n\n" +
-        "Example: `/cron add 0 9 * * * Check server status`\n" +
-        "Example: `/cron add */30 * * * * Check download progress`",
-        { parse_mode: "Markdown" }
-      );
-      return;
-    }
-    const expr   = parts.slice(0, 5).join(" ");
-    const prompt = parts.slice(5).join(" ").trim();
-    if (!prompt) {
-      await bot.sendMessage(chatId, "❌ Prompt cannot be empty.");
-      return;
-    }
+  // /cron <natural language> — parse and schedule
+  await bot.sendMessage(chatId, "⏰ Parsing your request...");
 
-    const r = cronManager.add({ name: prompt.slice(0, 40), schedule: expr, prompt, userId });
-    if (!r.ok) {
-      await bot.sendMessage(chatId, `❌ ${r.error}`);
-      return;
-    }
-    await bot.sendMessage(chatId,
-      `✅ Cron job added: "${r.job.name}"\n` +
-      `Schedule: ${expr} (${describeCron(expr)})\n` +
-      `ID: ${r.job.id.slice(0, 8)}`
-    );
+  const parseResult = await cronManager.parseNaturalLanguage(args);
+  if (!parseResult.ok) {
+    await bot.sendMessage(chatId, `❌ ${parseResult.error}`);
     return;
   }
 
-  // /cron once <time> <prompt>
-  if (sub === "once") {
-    const rest  = args.slice("once".length).trim();
-    const parts = rest.split(/\s+/);
-    if (parts.length < 2) {
-      await bot.sendMessage(chatId,
-        "Usage: `/cron once <time> <prompt>`\n\n" +
-        "Examples:\n" +
-        "`/cron once +30m Remind me`\n" +
-        "`/cron once +2h Check results`\n" +
-        "`/cron once 2026-03-23T09:00 Morning reminder`",
-        { parse_mode: "Markdown" }
-      );
-      return;
-    }
-    const timeStr = parts[0];
-    const prompt  = parts.slice(1).join(" ").trim();
-    if (!prompt) {
-      await bot.sendMessage(chatId, "❌ Prompt cannot be empty.");
-      return;
-    }
+  const { type, schedule, prompt, name } = parseResult.parsed;
 
-    const r = cronManager.addOnce({ name: prompt.slice(0, 40), runAt: timeStr, prompt, userId });
-    if (!r.ok) {
-      await bot.sendMessage(chatId, `❌ ${r.error}`);
-      return;
-    }
+  let r;
+  if (type === "once") {
+    r = cronManager.addOnce({ name, runAt: schedule, prompt, userId });
+  } else {
+    r = cronManager.add({ name, schedule, prompt, userId });
+  }
+
+  if (!r.ok) {
+    await bot.sendMessage(chatId, `❌ ${r.error}`);
+    return;
+  }
+
+  const id8 = r.job.id.slice(0, 8);
+  let confirmText;
+  if (type === "once") {
     const at = new Date(r.job.runAt).toLocaleString();
-    await bot.sendMessage(chatId,
-      `✅ One-time job added: "${r.job.name}"\n` +
-      `Runs at: ${at}\n` +
-      `ID: ${r.job.id.slice(0, 8)}`
-    );
-    return;
+    confirmText =
+      `✅ Scheduled: "${name}"\n` +
+      `Schedule: once at ${at}\n` +
+      `Task: ${prompt}\n` +
+      `ID: ${id8}\n\n` +
+      `/cron list — view all | /cron remove ${id8} — delete`;
+  } else {
+    confirmText =
+      `✅ Scheduled: "${name}"\n` +
+      `Schedule: ${schedule} (${describeCron(schedule)})\n` +
+      `Task: ${prompt}\n` +
+      `ID: ${id8}\n\n` +
+      `/cron list — view all | /cron remove ${id8} — delete`;
   }
-
-  await bot.sendMessage(chatId, `Unknown subcommand: "${sub}"\nUse /cron help for usage.`);
+  await bot.sendMessage(chatId, confirmText);
 });
 
 // /help and /start
@@ -672,7 +636,7 @@ async function sendHelp(chatId, pro) {
       "/sessions — List session history\n" +
       "/resume <id> — Resume a session\n" +
       "/activate <key> — Activate license\n" +
-      "/cron — Scheduled tasks (cron jobs)\n" +
+      "/cron <description> — Schedule a task (natural language)\n" +
       "/help — Show this help\n\n" +
       "Send text, images, or files to chat.\n" +
       "Supported: PDF, Excel, CSV, code files, etc.",

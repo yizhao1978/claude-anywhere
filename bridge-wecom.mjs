@@ -495,7 +495,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
           "/sessions — 列出历史会话\n" +
           "/resume <id> — 恢复指定会话\n" +
           "/activate <key> — 激活授权码\n" +
-          "/cron   — 定时任务管理\n" +
+          "/cron <描述> — 创建定时任务（自然语言）\n" +
           "/help   — 显示帮助\n\n" +
           "直接发文字、图片或文件即可对话。\n支持: PDF、Excel、CSV、代码文件等。",
           true
@@ -534,20 +534,14 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
       if (!cronSub || cronSub === "help") {
         await wsClient.replyStream(frame, streamId,
           "⏰ 定时任务 /cron\n\n" +
-          "添加定期任务：\n" +
-          "/cron add <cron表达式> <提示词>\n" +
-          "示例：/cron add 0 9 * * * 检查服务器状态\n" +
-          "示例：/cron add */30 * * * * 检查下载进度\n\n" +
-          "添加一次性任务：\n" +
-          "/cron once <时间> <提示词>\n" +
-          "示例：/cron once +30m 30分钟后提醒我\n" +
-          "示例：/cron once +2h 检查结果\n" +
-          "示例：/cron once 2026-03-23T09:00 早会提醒\n\n" +
-          "其他命令：\n" +
-          "/cron list — 列出所有定时任务\n" +
-          "/cron remove <id> — 删除任务\n" +
+          "/cron <描述> — 创建定时任务（自然语言）\n" +
+          "如：/cron 每天早上9点检查服务器状态\n" +
+          "如：/cron 每周一到周五晚8点同步数据\n" +
+          "如：/cron 30分钟后提醒我开会\n\n" +
+          "/cron list — 查看所有定时任务\n" +
+          "/cron remove <id> — 删除定时任务\n" +
           "/cron help — 显示帮助\n\n" +
-          "相对时间格式：+30m、+2h、+1d\n每用户最多10个任务。",
+          "每用户最多10个任务。",
           true
         );
         break;
@@ -591,67 +585,48 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
         break;
       }
 
-      if (cronSub === "add") {
-        const rest  = cronArgs.slice("add".length).trim();
-        const parts = rest.split(/\s+/);
-        if (parts.length < 6) {
-          await wsClient.replyStream(frame, streamId,
-            "用法：/cron add <分> <时> <日> <月> <周> <提示词>\n\n" +
-            "示例：/cron add 0 9 * * * 检查服务器状态\n" +
-            "示例：/cron add */30 * * * * 检查下载进度",
-            true
-          );
-          break;
-        }
-        const expr   = parts.slice(0, 5).join(" ");
-        const prompt = parts.slice(5).join(" ").trim();
-        if (!prompt) {
-          await wsClient.replyStream(frame, streamId, "❌ 提示词不能为空。", true);
-          break;
-        }
-        const r = cronManager.add({ name: prompt.slice(0, 40), schedule: expr, prompt, userId: senderId });
-        if (!r.ok) {
-          await wsClient.replyStream(frame, streamId, `❌ ${r.error}`, true);
-          break;
-        }
-        await wsClient.replyStream(frame, streamId,
-          `✅ 定时任务已添加："${r.job.name}"\n调度：${expr}（${describeCron(expr)}）\nID：${r.job.id.slice(0, 8)}`,
-          true
-        );
+      // /cron <natural language> — parse and schedule
+      await wsClient.replyStream(frame, streamId, "⏰ 正在解析你的需求...", false);
+
+      const parseResult = await cronManager.parseNaturalLanguage(cronArgs);
+      if (!parseResult.ok) {
+        await wsClient.replyStream(frame, streamId, `❌ ${parseResult.error}`, true);
         break;
       }
 
-      if (cronSub === "once") {
-        const rest  = cronArgs.slice("once".length).trim();
-        const parts = rest.split(/\s+/);
-        if (parts.length < 2) {
-          await wsClient.replyStream(frame, streamId,
-            "用法：/cron once <时间> <提示词>\n\n" +
-            "示例：\n/cron once +30m 提醒我\n/cron once +2h 检查结果\n/cron once 2026-03-23T09:00 早会提醒",
-            true
-          );
-          break;
-        }
-        const timeStr = parts[0];
-        const prompt  = parts.slice(1).join(" ").trim();
-        if (!prompt) {
-          await wsClient.replyStream(frame, streamId, "❌ 提示词不能为空。", true);
-          break;
-        }
-        const r = cronManager.addOnce({ name: prompt.slice(0, 40), runAt: timeStr, prompt, userId: senderId });
-        if (!r.ok) {
-          await wsClient.replyStream(frame, streamId, `❌ ${r.error}`, true);
-          break;
-        }
+      const { type, schedule, prompt, name } = parseResult.parsed;
+
+      let r;
+      if (type === "once") {
+        r = cronManager.addOnce({ name, runAt: schedule, prompt, userId: senderId });
+      } else {
+        r = cronManager.add({ name, schedule, prompt, userId: senderId });
+      }
+
+      if (!r.ok) {
+        await wsClient.replyStream(frame, streamId, `❌ ${r.error}`, true);
+        break;
+      }
+
+      const id8 = r.job.id.slice(0, 8);
+      let confirmText;
+      if (type === "once") {
         const at = new Date(r.job.runAt).toLocaleString("zh-CN");
-        await wsClient.replyStream(frame, streamId,
-          `✅ 一次性任务已添加："${r.job.name}"\n执行时间：${at}\nID：${r.job.id.slice(0, 8)}`,
-          true
-        );
-        break;
+        confirmText =
+          `✅ 定时任务已创建："${name}"\n` +
+          `调度：一次性，${at}\n` +
+          `任务：${prompt}\n` +
+          `ID：${id8}\n\n` +
+          `/cron list 查看所有 | /cron remove ${id8} 删除`;
+      } else {
+        confirmText =
+          `✅ 定时任务已创建："${name}"\n` +
+          `调度：${schedule}（${describeCron(schedule)}）\n` +
+          `任务：${prompt}\n` +
+          `ID：${id8}\n\n` +
+          `/cron list 查看所有 | /cron remove ${id8} 删除`;
       }
-
-      await wsClient.replyStream(frame, streamId, `未知子命令："${cronSub}"\n发送 /cron help 查看用法。`, true);
+      await wsClient.replyStream(frame, streamId, confirmText, true);
       break;
     }
   }
