@@ -19,6 +19,7 @@ import {
 import { join, basename } from "path";
 import { homedir } from "os";
 import { getLicenseTier, activateLicense } from "./license-client.mjs";
+import { CronManager, parseRunAt, describeCron } from "./cron-manager.mjs";
 
 // Load .env if present (manual parse — avoids hard dependency on dotenv at module level)
 try {
@@ -68,6 +69,54 @@ const STATE_DIR = join(homedir(), ".claude-anywhere-free");
 mkdirSync(TMP_DIR, { recursive: true });
 mkdirSync(join(homedir(), ".claude-anywhere"), { recursive: true });
 mkdirSync(STATE_DIR, { recursive: true });
+
+// ============ Cron manager (Pro feature) ============
+
+const cronManager = new CronManager({
+  claudePath: CLAUDE_PATH,
+  claudeCwd:  CLAUDE_CWD,
+  onResult: async (jobId, jobName, userId, result) => {
+    // Send scheduled job result to the user's chat
+    // We can only send to a known chat. We store chatId alongside userId.
+    const chatId = userChatIds.get(userId);
+    if (!chatId) {
+      logger.warn(`No chatId for userId ${userId}, cannot deliver cron result`);
+      return;
+    }
+    const header = `⏰ Scheduled job "${jobName}" completed:\n\n`;
+    const fullText = header + result;
+    for (const chunk of splitText(fullText)) {
+      try { await bot.sendMessage(chatId, chunk); } catch (e) {
+        logger.error(`Failed to deliver cron result to ${userId}:`, e.message);
+      }
+    }
+  },
+});
+
+// Map userId -> chatId (updated on every message, persisted to disk)
+const CHAT_IDS_FILE = join(homedir(), ".claude-anywhere", "telegram-chat-ids.json");
+const userChatIds = loadChatIds();
+
+function loadChatIds() {
+  try {
+    if (existsSync(CHAT_IDS_FILE)) return new Map(Object.entries(JSON.parse(readFileSync(CHAT_IDS_FILE, "utf-8"))));
+  } catch {}
+  return new Map();
+}
+
+function saveChatIds() {
+  try { writeFileSync(CHAT_IDS_FILE, JSON.stringify(Object.fromEntries(userChatIds), null, 2)); } catch {}
+}
+
+function trackChatId(userId, chatId) {
+  if (userChatIds.get(userId) !== chatId) {
+    userChatIds.set(userId, chatId);
+    saveChatIds();
+  }
+}
+
+// Start all persisted cron jobs
+cronManager.start();
 
 const logger = {
   info:  (...a) => console.log( new Date().toISOString(), "[INFO]",  ...a),
@@ -456,6 +505,162 @@ bot.onText(/^\/activate(?:\s+(.+))?$/, async (msg, match) => {
   }
 });
 
+// ============ /cron command handler ============
+
+bot.onText(/^\/cron(?:\s+(.*))?$/s, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const userId = String(msg.from.id);
+  trackChatId(userId, chatId);
+
+  const pro = await isProMode();
+  if (!pro) {
+    await bot.sendMessage(chatId,
+      `⏰ Scheduled tasks (/cron) is a Pro feature.\n💡 Upgrade → ${UPGRADE_URL} ($5.99/mo)`
+    );
+    return;
+  }
+
+  const args = (match?.[1] || "").trim();
+  const sub  = args.split(/\s+/)[0]?.toLowerCase();
+
+  // /cron help  or  /cron
+  if (!sub || sub === "help") {
+    await bot.sendMessage(chatId,
+      "⏰ *Scheduled Tasks — /cron*\n\n" +
+      "*Add recurring job:*\n" +
+      "`/cron add <cron expr> <prompt>`\n" +
+      "e.g. `/cron add 0 9 * * * Check server status`\n" +
+      "e.g. `/cron add */30 * * * * Check download progress`\n\n" +
+      "*Add one-time job:*\n" +
+      "`/cron once <time> <prompt>`\n" +
+      "e.g. `/cron once 2026-03-23T09:00 Remind me to attend meeting`\n" +
+      "e.g. `/cron once +30m Remind me in 30 minutes`\n" +
+      "e.g. `/cron once +2h Check the results`\n\n" +
+      "*Other:*\n" +
+      "`/cron list` — List your scheduled jobs\n" +
+      "`/cron remove <id>` — Delete a job\n" +
+      "`/cron help` — Show this help\n\n" +
+      "Relative time: `+30m` `+2h` `+1d`\n" +
+      "Max 10 jobs per user.",
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+
+  // /cron list
+  if (sub === "list") {
+    const jobs = cronManager.list(userId);
+    if (!jobs.length) {
+      await bot.sendMessage(chatId, "📋 You have no scheduled jobs.\n\nUse /cron help to learn how to add one.");
+      return;
+    }
+    let text = `📋 Your scheduled jobs (${jobs.length}/${10}):\n\n`;
+    for (const j of jobs) {
+      const id8 = j.id.slice(0, 8);
+      if (j.type === "cron") {
+        text += `[${id8}] "${j.name}"\n  ⏱ ${j.schedule} (${describeCron(j.schedule)})\n\n`;
+      } else {
+        const at = new Date(j.runAt).toLocaleString();
+        text += `[${id8}] "${j.name}"\n  📅 Once at ${at}\n\n`;
+      }
+    }
+    text += "/cron remove <id> to delete";
+    await bot.sendMessage(chatId, text);
+    return;
+  }
+
+  // /cron remove <id>
+  if (sub === "remove") {
+    const rest = args.slice("remove".length).trim();
+    if (!rest) {
+      await bot.sendMessage(chatId, "Usage: /cron remove <job id prefix>\nUse /cron list to see your jobs.");
+      return;
+    }
+    // Support partial id match
+    const jobs = cronManager.list(userId);
+    const found = jobs.find(j => j.id.startsWith(rest) || j.id.slice(0, 8) === rest);
+    if (!found) {
+      await bot.sendMessage(chatId, `❌ No job found with id starting with "${rest}".\nUse /cron list to see your jobs.`);
+      return;
+    }
+    cronManager.remove(found.id);
+    await bot.sendMessage(chatId, `✅ Job removed: "${found.name}" [${found.id.slice(0, 8)}]`);
+    return;
+  }
+
+  // /cron add <expr> <prompt>
+  // Cron expression is 5 parts (min hr dom mon dow), then the rest is the prompt
+  if (sub === "add") {
+    const rest = args.slice("add".length).trim();
+    const parts = rest.split(/\s+/);
+    if (parts.length < 6) {
+      await bot.sendMessage(chatId,
+        "Usage: `/cron add <min> <hour> <dom> <month> <dow> <prompt>`\n\n" +
+        "Example: `/cron add 0 9 * * * Check server status`\n" +
+        "Example: `/cron add */30 * * * * Check download progress`",
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+    const expr   = parts.slice(0, 5).join(" ");
+    const prompt = parts.slice(5).join(" ").trim();
+    if (!prompt) {
+      await bot.sendMessage(chatId, "❌ Prompt cannot be empty.");
+      return;
+    }
+
+    const r = cronManager.add({ name: prompt.slice(0, 40), schedule: expr, prompt, userId });
+    if (!r.ok) {
+      await bot.sendMessage(chatId, `❌ ${r.error}`);
+      return;
+    }
+    await bot.sendMessage(chatId,
+      `✅ Cron job added: "${r.job.name}"\n` +
+      `Schedule: ${expr} (${describeCron(expr)})\n` +
+      `ID: ${r.job.id.slice(0, 8)}`
+    );
+    return;
+  }
+
+  // /cron once <time> <prompt>
+  if (sub === "once") {
+    const rest  = args.slice("once".length).trim();
+    const parts = rest.split(/\s+/);
+    if (parts.length < 2) {
+      await bot.sendMessage(chatId,
+        "Usage: `/cron once <time> <prompt>`\n\n" +
+        "Examples:\n" +
+        "`/cron once +30m Remind me`\n" +
+        "`/cron once +2h Check results`\n" +
+        "`/cron once 2026-03-23T09:00 Morning reminder`",
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+    const timeStr = parts[0];
+    const prompt  = parts.slice(1).join(" ").trim();
+    if (!prompt) {
+      await bot.sendMessage(chatId, "❌ Prompt cannot be empty.");
+      return;
+    }
+
+    const r = cronManager.addOnce({ name: prompt.slice(0, 40), runAt: timeStr, prompt, userId });
+    if (!r.ok) {
+      await bot.sendMessage(chatId, `❌ ${r.error}`);
+      return;
+    }
+    const at = new Date(r.job.runAt).toLocaleString();
+    await bot.sendMessage(chatId,
+      `✅ One-time job added: "${r.job.name}"\n` +
+      `Runs at: ${at}\n` +
+      `ID: ${r.job.id.slice(0, 8)}`
+    );
+    return;
+  }
+
+  await bot.sendMessage(chatId, `Unknown subcommand: "${sub}"\nUse /cron help for usage.`);
+});
+
 // /help and /start
 async function sendHelp(chatId, pro) {
   if (pro) {
@@ -467,6 +672,7 @@ async function sendHelp(chatId, pro) {
       "/sessions — List session history\n" +
       "/resume <id> — Resume a session\n" +
       "/activate <key> — Activate license\n" +
+      "/cron — Scheduled tasks (cron jobs)\n" +
       "/help — Show this help\n\n" +
       "Send text, images, or files to chat.\n" +
       "Supported: PDF, Excel, CSV, code files, etc.",
@@ -488,6 +694,7 @@ async function sendHelp(chatId, pro) {
       "Multi-turn       ✗       ✓\n" +
       "Image analysis   ✗       ✓\n" +
       "File analysis    ✗       ✓\n" +
+      "Scheduled tasks  ✗       ✓\n" +
       "WeChat support   ✗       ✓\n" +
       "Ads              ✓       ✗\n" +
       "```\n\n" +
@@ -621,6 +828,9 @@ bot.on("text", async msg => {
   const userId = String(msg.from.id);
   const text   = msg.text?.trim();
   const msgId  = String(msg.message_id);
+
+  // Track chatId for cron result delivery
+  trackChatId(userId, chatId);
 
   if (!text || text.startsWith("/")) return;
   if (processing.has(msgId)) return;

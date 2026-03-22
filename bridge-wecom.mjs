@@ -20,6 +20,7 @@ import {
 import { join, basename } from "path";
 import { homedir } from "os";
 import { getLicenseTier, activateLicense } from "./license-client.mjs";
+import { CronManager, parseRunAt, describeCron } from "./cron-manager.mjs";
 
 // Load .env if present
 try {
@@ -373,6 +374,9 @@ function parseCommand(text) {
   if (resumeM) return { cmd: "resume", id: resumeM[1].trim() };
   const activateM = text.match(/^\/activate(?:\s+(.+))?$/);
   if (activateM) return { cmd: "activate", key: activateM[1]?.trim() };
+  // /cron [subcommand ...]
+  const cronM = text.match(/^\/cron(?:\s+([\s\S]*))?$/);
+  if (cronM) return { cmd: "cron", args: (cronM[1] || "").trim() };
   return null;
 }
 
@@ -491,6 +495,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
           "/sessions — 列出历史会话\n" +
           "/resume <id> — 恢复指定会话\n" +
           "/activate <key> — 激活授权码\n" +
+          "/cron   — 定时任务管理\n" +
           "/help   — 显示帮助\n\n" +
           "直接发文字、图片或文件即可对话。\n支持: PDF、Excel、CSV、代码文件等。",
           true
@@ -508,11 +513,147 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
           "• 7天试用期\n" +
           "• 单轮对话（不续接）\n" +
           "• 仅支持文字\n\n" +
-          "💡 升级Pro版：无限对话、多轮会话、图片文件分析 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
+          "💡 升级Pro版：无限对话、多轮会话、图片文件分析、定时任务 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
           true
         );
       }
       break;
+
+    case "cron": {
+      if (!pro) {
+        await wsClient.replyStream(frame, streamId,
+          "⏰ 定时任务（/cron）是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
+          true
+        );
+        break;
+      }
+
+      const cronArgs = command.args || "";
+      const cronSub  = cronArgs.split(/\s+/)[0]?.toLowerCase();
+
+      if (!cronSub || cronSub === "help") {
+        await wsClient.replyStream(frame, streamId,
+          "⏰ 定时任务 /cron\n\n" +
+          "添加定期任务：\n" +
+          "/cron add <cron表达式> <提示词>\n" +
+          "示例：/cron add 0 9 * * * 检查服务器状态\n" +
+          "示例：/cron add */30 * * * * 检查下载进度\n\n" +
+          "添加一次性任务：\n" +
+          "/cron once <时间> <提示词>\n" +
+          "示例：/cron once +30m 30分钟后提醒我\n" +
+          "示例：/cron once +2h 检查结果\n" +
+          "示例：/cron once 2026-03-23T09:00 早会提醒\n\n" +
+          "其他命令：\n" +
+          "/cron list — 列出所有定时任务\n" +
+          "/cron remove <id> — 删除任务\n" +
+          "/cron help — 显示帮助\n\n" +
+          "相对时间格式：+30m、+2h、+1d\n每用户最多10个任务。",
+          true
+        );
+        break;
+      }
+
+      if (cronSub === "list") {
+        const jobs = cronManager.list(senderId);
+        if (!jobs.length) {
+          await wsClient.replyStream(frame, streamId, "📋 您还没有定时任务。\n\n发送 /cron help 了解如何添加。", true);
+          break;
+        }
+        let text = `📋 您的定时任务（${jobs.length}/10）：\n\n`;
+        for (const j of jobs) {
+          const id8 = j.id.slice(0, 8);
+          if (j.type === "cron") {
+            text += `[${id8}] "${j.name}"\n  ⏱ ${j.schedule}（${describeCron(j.schedule)}）\n\n`;
+          } else {
+            const at = new Date(j.runAt).toLocaleString("zh-CN");
+            text += `[${id8}] "${j.name}"\n  📅 一次性，执行时间：${at}\n\n`;
+          }
+        }
+        text += "/cron remove <id> 删除任务";
+        await wsClient.replyStream(frame, streamId, text, true);
+        break;
+      }
+
+      if (cronSub === "remove") {
+        const rest = cronArgs.slice("remove".length).trim();
+        if (!rest) {
+          await wsClient.replyStream(frame, streamId, "用法：/cron remove <任务ID前缀>\n先用 /cron list 查看任务列表。", true);
+          break;
+        }
+        const jobs  = cronManager.list(senderId);
+        const found = jobs.find(j => j.id.startsWith(rest) || j.id.slice(0, 8) === rest);
+        if (!found) {
+          await wsClient.replyStream(frame, streamId, `❌ 未找到ID以"${rest}"开头的任务。\n用 /cron list 查看任务列表。`, true);
+          break;
+        }
+        cronManager.remove(found.id);
+        await wsClient.replyStream(frame, streamId, `✅ 已删除任务："${found.name}"（${found.id.slice(0, 8)}）`, true);
+        break;
+      }
+
+      if (cronSub === "add") {
+        const rest  = cronArgs.slice("add".length).trim();
+        const parts = rest.split(/\s+/);
+        if (parts.length < 6) {
+          await wsClient.replyStream(frame, streamId,
+            "用法：/cron add <分> <时> <日> <月> <周> <提示词>\n\n" +
+            "示例：/cron add 0 9 * * * 检查服务器状态\n" +
+            "示例：/cron add */30 * * * * 检查下载进度",
+            true
+          );
+          break;
+        }
+        const expr   = parts.slice(0, 5).join(" ");
+        const prompt = parts.slice(5).join(" ").trim();
+        if (!prompt) {
+          await wsClient.replyStream(frame, streamId, "❌ 提示词不能为空。", true);
+          break;
+        }
+        const r = cronManager.add({ name: prompt.slice(0, 40), schedule: expr, prompt, userId: senderId });
+        if (!r.ok) {
+          await wsClient.replyStream(frame, streamId, `❌ ${r.error}`, true);
+          break;
+        }
+        await wsClient.replyStream(frame, streamId,
+          `✅ 定时任务已添加："${r.job.name}"\n调度：${expr}（${describeCron(expr)}）\nID：${r.job.id.slice(0, 8)}`,
+          true
+        );
+        break;
+      }
+
+      if (cronSub === "once") {
+        const rest  = cronArgs.slice("once".length).trim();
+        const parts = rest.split(/\s+/);
+        if (parts.length < 2) {
+          await wsClient.replyStream(frame, streamId,
+            "用法：/cron once <时间> <提示词>\n\n" +
+            "示例：\n/cron once +30m 提醒我\n/cron once +2h 检查结果\n/cron once 2026-03-23T09:00 早会提醒",
+            true
+          );
+          break;
+        }
+        const timeStr = parts[0];
+        const prompt  = parts.slice(1).join(" ").trim();
+        if (!prompt) {
+          await wsClient.replyStream(frame, streamId, "❌ 提示词不能为空。", true);
+          break;
+        }
+        const r = cronManager.addOnce({ name: prompt.slice(0, 40), runAt: timeStr, prompt, userId: senderId });
+        if (!r.ok) {
+          await wsClient.replyStream(frame, streamId, `❌ ${r.error}`, true);
+          break;
+        }
+        const at = new Date(r.job.runAt).toLocaleString("zh-CN");
+        await wsClient.replyStream(frame, streamId,
+          `✅ 一次性任务已添加："${r.job.name}"\n执行时间：${at}\nID：${r.job.id.slice(0, 8)}`,
+          true
+        );
+        break;
+      }
+
+      await wsClient.replyStream(frame, streamId, `未知子命令："${cronSub}"\n发送 /cron help 查看用法。`, true);
+      break;
+    }
   }
 }
 
@@ -563,6 +704,47 @@ async function handleClaudeCall(wsClient, frame, senderId, message, label, pro) 
 
 const processing = new Set();
 
+// ============ Cron manager (Pro feature) ============
+// wsClient is not available at module level; we store it after connect.
+let _wsClient = null;
+
+const cronManager = new CronManager({
+  claudePath: CLAUDE_PATH,
+  claudeCwd:  CLAUDE_CWD,
+  onResult: async (jobId, jobName, userId, result) => {
+    if (!_wsClient) { logger.warn("wsClient not ready, cannot deliver cron result"); return; }
+    // We need a fake frame to send a proactive message.
+    // WeCom SDK requires a frame context for replyStream, so we store the last frame per user.
+    const frame = lastFrameByUser.get(userId);
+    if (!frame) { logger.warn(`No frame for userId ${userId}, cannot deliver cron result`); return; }
+
+    const header = `⏰ 定时任务"${jobName}"已执行：\n\n`;
+    const fullText = header + result;
+    const chunks = splitText(fullText);
+    const sid0 = `stream_${Date.now()}_${randomUUID().slice(0, 8)}`;
+
+    if (chunks.length === 1) {
+      try { await safeReplyStream(_wsClient, frame, sid0, chunks[0], true); } catch (e) {
+        logger.error(`Failed to deliver cron result to ${userId}:`, e.message);
+      }
+    } else {
+      for (let i = 0; i < chunks.length; i++) {
+        const sid = i === 0 ? sid0 : `stream_${Date.now()}_${randomUUID().slice(0, 8)}`;
+        const isLast = i === chunks.length - 1;
+        try { await safeReplyStream(_wsClient, frame, sid, chunks[i], isLast); } catch (e) {
+          logger.error(`Chunk ${i} delivery error:`, e.message);
+        }
+      }
+    }
+  },
+});
+
+// Store last received frame per user (for proactive cron result delivery)
+const lastFrameByUser = new Map();
+
+// Start all persisted cron jobs
+cronManager.start();
+
 // ============ Text message handler ============
 
 async function handleTextMessage(wsClient, frame) {
@@ -573,6 +755,9 @@ async function handleTextMessage(wsClient, frame) {
   if (!text || !msgId) return;
   if (processing.has(msgId)) return;
   processing.add(msgId);
+
+  // Track frame for proactive cron result delivery
+  lastFrameByUser.set(senderId, frame);
 
   logger.info(`Text: [${senderId}] ${text.slice(0, 100)}`);
 
@@ -742,6 +927,9 @@ async function start() {
       logger.warn("Welcome message failed:", e?.message);
     }
   });
+
+  // Store wsClient reference for cron result delivery
+  _wsClient = wsClient;
 
   wsClient.connect();
 
