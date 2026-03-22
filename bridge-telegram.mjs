@@ -72,6 +72,12 @@ mkdirSync(STATE_DIR, { recursive: true });
 
 // ============ Cron manager (Pro feature) ============
 
+// Pending cron confirmations: userId -> { parsed, timer }
+const pendingCron = new Map();
+
+const CONFIRM_WORDS = new Set(["y", "yes", "ok", "确认", "是", "好", "好的"]);
+const CANCEL_WORDS  = new Set(["n", "no", "取消", "否", "算了"]);
+
 const cronManager = new CronManager({
   claudePath: CLAUDE_PATH,
   claudeCwd:  CLAUDE_CWD,
@@ -581,7 +587,7 @@ bot.onText(/^\/cron(?:\s+(.*))?$/s, async (msg, match) => {
     return;
   }
 
-  // /cron <natural language> — parse and schedule
+  // /cron <natural language> — parse, preview, and wait for confirmation
   await bot.sendMessage(chatId, "⏰ Parsing your request...");
 
   const parseResult = await cronManager.parseNaturalLanguage(args);
@@ -592,37 +598,31 @@ bot.onText(/^\/cron(?:\s+(.*))?$/s, async (msg, match) => {
 
   const { type, schedule, prompt, name } = parseResult.parsed;
 
-  let r;
+  // Build preview text
+  let previewText;
   if (type === "once") {
-    r = cronManager.addOnce({ name, runAt: schedule, prompt, userId });
+    const atStr = new Date(schedule).toLocaleString();
+    previewText =
+      `⏰ I'll create this scheduled task:\n\n` +
+      `📌 Name: ${name}\n` +
+      `🕐 Schedule: once at ${atStr}\n` +
+      `📋 Task: ${prompt}\n\n` +
+      `Reply Y to confirm, N to cancel.`;
   } else {
-    r = cronManager.add({ name, schedule, prompt, userId });
+    previewText =
+      `⏰ I'll create this scheduled task:\n\n` +
+      `📌 Name: ${name}\n` +
+      `🕐 Schedule: ${describeCron(schedule)} (${schedule})\n` +
+      `📋 Task: ${prompt}\n\n` +
+      `Reply Y to confirm, N to cancel.`;
   }
 
-  if (!r.ok) {
-    await bot.sendMessage(chatId, `❌ ${r.error}`);
-    return;
-  }
+  // Store pending confirmation with 60-second timeout
+  if (pendingCron.has(userId)) clearTimeout(pendingCron.get(userId).timer);
+  const timer = setTimeout(() => pendingCron.delete(userId), 60_000);
+  pendingCron.set(userId, { type, schedule, prompt, name, timer });
 
-  const id8 = r.job.id.slice(0, 8);
-  let confirmText;
-  if (type === "once") {
-    const at = new Date(r.job.runAt).toLocaleString();
-    confirmText =
-      `✅ Scheduled: "${name}"\n` +
-      `Schedule: once at ${at}\n` +
-      `Task: ${prompt}\n` +
-      `ID: ${id8}\n\n` +
-      `/cron list — view all | /cron remove ${id8} — delete`;
-  } else {
-    confirmText =
-      `✅ Scheduled: "${name}"\n` +
-      `Schedule: ${schedule} (${describeCron(schedule)})\n` +
-      `Task: ${prompt}\n` +
-      `ID: ${id8}\n\n` +
-      `/cron list — view all | /cron remove ${id8} — delete`;
-  }
-  await bot.sendMessage(chatId, confirmText);
+  await bot.sendMessage(chatId, previewText);
 });
 
 // /help and /start
@@ -801,6 +801,51 @@ bot.on("text", async msg => {
   processing.add(msgId);
 
   logger.info(`Text: [${userId}] ${text.slice(0, 100)}`);
+
+  // Check for pending cron confirmation
+  if (pendingCron.has(userId)) {
+    const lower = text.trim().toLowerCase();
+    if (CONFIRM_WORDS.has(lower)) {
+      const pending = pendingCron.get(userId);
+      clearTimeout(pending.timer);
+      pendingCron.delete(userId);
+      processing.delete(msgId);
+
+      const { type, schedule, prompt, name } = pending;
+      let r;
+      if (type === "once") {
+        r = cronManager.addOnce({ name, runAt: schedule, prompt, userId });
+      } else {
+        r = cronManager.add({ name, schedule, prompt, userId });
+      }
+
+      if (!r.ok) {
+        await bot.sendMessage(chatId, `❌ ${r.error}`);
+        return;
+      }
+      const id8 = r.job.id.slice(0, 8);
+      let doneText;
+      if (type === "once") {
+        const at = new Date(r.job.runAt).toLocaleString();
+        doneText = `✅ Scheduled: "${name}"\nSchedule: once at ${at}\nTask: ${prompt}\nID: ${id8}\n\n/cron list — view all | /cron remove ${id8} — delete`;
+      } else {
+        doneText = `✅ Scheduled: "${name}"\nSchedule: ${schedule} (${describeCron(schedule)})\nTask: ${prompt}\nID: ${id8}\n\n/cron list — view all | /cron remove ${id8} — delete`;
+      }
+      await bot.sendMessage(chatId, doneText);
+      return;
+    }
+    if (CANCEL_WORDS.has(lower)) {
+      const pending = pendingCron.get(userId);
+      clearTimeout(pending.timer);
+      pendingCron.delete(userId);
+      processing.delete(msgId);
+      await bot.sendMessage(chatId, "❌ Cancelled.");
+      return;
+    }
+    // Not a confirm/cancel word — clear pending and fall through to normal handling
+    clearTimeout(pendingCron.get(userId).timer);
+    pendingCron.delete(userId);
+  }
 
   try {
     const pro = await isProMode();

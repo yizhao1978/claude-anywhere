@@ -380,6 +380,12 @@ function parseCommand(text) {
   return null;
 }
 
+// Pending cron confirmations: userId -> { type, schedule, prompt, name, timer }
+const pendingCron = new Map();
+
+const CONFIRM_WORDS = new Set(["y", "yes", "ok", "确认", "是", "好", "好的"]);
+const CANCEL_WORDS  = new Set(["n", "no", "取消", "否", "算了"]);
+
 // ============ Command handler ============
 
 async function handleCommand(wsClient, frame, senderId, command, pro) {
@@ -585,7 +591,7 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
         break;
       }
 
-      // /cron <natural language> — parse and schedule
+      // /cron <natural language> — parse, preview, and wait for confirmation
       await wsClient.replyStream(frame, streamId, "⏰ 正在解析你的需求...", false);
 
       const parseResult = await cronManager.parseNaturalLanguage(cronArgs);
@@ -596,37 +602,31 @@ async function handleCommand(wsClient, frame, senderId, command, pro) {
 
       const { type, schedule, prompt, name } = parseResult.parsed;
 
-      let r;
+      // Build preview text
+      let previewText;
       if (type === "once") {
-        r = cronManager.addOnce({ name, runAt: schedule, prompt, userId: senderId });
+        const atStr = new Date(schedule).toLocaleString("zh-CN");
+        previewText =
+          `⏰ 即将创建以下定时任务：\n\n` +
+          `📌 名称：${name}\n` +
+          `🕐 调度：一次性，${atStr}\n` +
+          `📋 任务：${prompt}\n\n` +
+          `回复 Y 确认创建，N 取消。`;
       } else {
-        r = cronManager.add({ name, schedule, prompt, userId: senderId });
+        previewText =
+          `⏰ 即将创建以下定时任务：\n\n` +
+          `📌 名称：${name}\n` +
+          `🕐 调度：${describeCron(schedule)}（${schedule}）\n` +
+          `📋 任务：${prompt}\n\n` +
+          `回复 Y 确认创建，N 取消。`;
       }
 
-      if (!r.ok) {
-        await wsClient.replyStream(frame, streamId, `❌ ${r.error}`, true);
-        break;
-      }
+      // Store pending confirmation with 60-second timeout
+      if (pendingCron.has(senderId)) clearTimeout(pendingCron.get(senderId).timer);
+      const timer = setTimeout(() => pendingCron.delete(senderId), 60_000);
+      pendingCron.set(senderId, { type, schedule, prompt, name, timer });
 
-      const id8 = r.job.id.slice(0, 8);
-      let confirmText;
-      if (type === "once") {
-        const at = new Date(r.job.runAt).toLocaleString("zh-CN");
-        confirmText =
-          `✅ 定时任务已创建："${name}"\n` +
-          `调度：一次性，${at}\n` +
-          `任务：${prompt}\n` +
-          `ID：${id8}\n\n` +
-          `/cron list 查看所有 | /cron remove ${id8} 删除`;
-      } else {
-        confirmText =
-          `✅ 定时任务已创建："${name}"\n` +
-          `调度：${schedule}（${describeCron(schedule)}）\n` +
-          `任务：${prompt}\n` +
-          `ID：${id8}\n\n` +
-          `/cron list 查看所有 | /cron remove ${id8} 删除`;
-      }
-      await wsClient.replyStream(frame, streamId, confirmText, true);
+      await wsClient.replyStream(frame, streamId, previewText, true);
       break;
     }
   }
@@ -737,6 +737,51 @@ async function handleTextMessage(wsClient, frame) {
   logger.info(`Text: [${senderId}] ${text.slice(0, 100)}`);
 
   try {
+    // Check for pending cron confirmation
+    if (pendingCron.has(senderId)) {
+      const lower = text.trim().toLowerCase();
+      if (CONFIRM_WORDS.has(lower)) {
+        const pending = pendingCron.get(senderId);
+        clearTimeout(pending.timer);
+        pendingCron.delete(senderId);
+
+        const { type, schedule, prompt, name } = pending;
+        let r;
+        if (type === "once") {
+          r = cronManager.addOnce({ name, runAt: schedule, prompt, userId: senderId });
+        } else {
+          r = cronManager.add({ name, schedule, prompt, userId: senderId });
+        }
+
+        const streamId = `stream_${Date.now()}_${randomUUID().slice(0, 8)}`;
+        if (!r.ok) {
+          await wsClient.replyStream(frame, streamId, `❌ ${r.error}`, true);
+          return;
+        }
+        const id8 = r.job.id.slice(0, 8);
+        let doneText;
+        if (type === "once") {
+          const at = new Date(r.job.runAt).toLocaleString("zh-CN");
+          doneText = `✅ 定时任务已创建："${name}"\n调度：一次性，${at}\n任务：${prompt}\nID：${id8}\n\n/cron list 查看所有 | /cron remove ${id8} 删除`;
+        } else {
+          doneText = `✅ 定时任务已创建："${name}"\n调度：${schedule}（${describeCron(schedule)}）\n任务：${prompt}\nID：${id8}\n\n/cron list 查看所有 | /cron remove ${id8} 删除`;
+        }
+        await wsClient.replyStream(frame, streamId, doneText, true);
+        return;
+      }
+      if (CANCEL_WORDS.has(lower)) {
+        const pending = pendingCron.get(senderId);
+        clearTimeout(pending.timer);
+        pendingCron.delete(senderId);
+        const streamId = `stream_${Date.now()}_${randomUUID().slice(0, 8)}`;
+        await wsClient.replyStream(frame, streamId, "❌ 已取消。", true);
+        return;
+      }
+      // Not a confirm/cancel word — clear pending and fall through to normal handling
+      clearTimeout(pendingCron.get(senderId).timer);
+      pendingCron.delete(senderId);
+    }
+
     const pro = await isProMode();
     const command = parseCommand(text);
     if (command) {
