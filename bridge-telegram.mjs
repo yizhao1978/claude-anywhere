@@ -56,7 +56,7 @@ const SESSIONS_FILE = join(homedir(), ".claude-anywhere", "telegram-sessions.jso
 // Free tier constants
 const FREE_DAILY_LIMIT = 5;
 const TRIAL_DAYS       = 7;
-const UPGRADE_URL      = "gumroad.com/l/claude-anywhere";
+const UPGRADE_URL      = "claudeanywhere.gumroad.com/l/claude-anywhere";
 const UPGRADE_AD       = `\n\n💡 Upgrade to Pro: unlimited chat, multi-turn, image, file, WeChat → ${UPGRADE_URL} ($5.99/mo)`;
 const LIMIT_MSG        = `⚠️ Free limit reached (5/5 today). Upgrade to Pro for unlimited → ${UPGRADE_URL} ($5.99/mo)`;
 const TRIAL_EXPIRED_MSG = `⚠️ Free trial expired (7 days). Upgrade to Pro → ${UPGRADE_URL} ($5.99/mo)`;

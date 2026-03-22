@@ -20,7 +20,7 @@ Use Claude Code anywhere via Telegram & WeChat Work — no terminal needed.
 | 广告 / Ads | ✓ | ✗ |
 | 会话历史 / Session history | ✗ | ✓ |
 
-**升级 Pro → [gumroad.com/l/claude-anywhere](https://gumroad.com/l/claude-anywhere)（$4.99/月）**
+**升级 Pro → [claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)（$4.99/月）**
 
 ---
 
@@ -324,7 +324,7 @@ Pro unlocks everything:
 - ✅ 会话历史，可随时恢复对话 / Session history with resume support
 - ✅ 无广告 / No ads
 
-**购买地址 / Purchase:** [gumroad.com/l/claude-anywhere](https://gumroad.com/l/claude-anywhere)（$4.99/月）
+**购买地址 / Purchase:** [claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)（$4.99/月）
 
 购买后，使用 `/activate CA-XXXX-XXXX-XXXX-XXXX` 命令激活。
 After purchase, activate with: `/activate CA-XXXX-XXXX-XXXX-XXXX`
@@ -369,7 +369,7 @@ A: 检查 `WECOM_BOT_ID` 和 `WECOM_SECRET` 是否正确，确认企业微信管
 ---
 
 **Q: 免费版试用期到了还能用吗 / Can I use after free trial?**
-A: 试用期结束后需要升级 Pro。购买地址：[gumroad.com/l/claude-anywhere](https://gumroad.com/l/claude-anywhere)
+A: 试用期结束后需要升级 Pro。购买地址：[claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)
 
 ---
 

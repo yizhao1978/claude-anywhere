@@ -46,7 +46,7 @@ export async function getLicenseTier() {
   const machineId = getMachineId();
 
   try {
-    const res = await fetch(`${serverUrl}/v1/verify`, {
+    const res = await fetch(`${serverUrl}/api/license/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ license_key: key, machine_id: machineId }),
@@ -86,7 +86,7 @@ export async function activateLicense(key) {
   const machineId = getMachineId();
 
   try {
-    const res = await fetch(`${serverUrl}/v1/activate`, {
+    const res = await fetch(`${serverUrl}/api/license/activate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ license_key: key, machine_id: machineId }),
