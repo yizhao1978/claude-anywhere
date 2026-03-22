@@ -1,0 +1,14 @@
+[Unit]
+Description=Claude Anywhere WeChat Work Bridge (Free Tier)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/claude-anywhere
+ExecStart=/usr/bin/node bridge-wecom.mjs
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=/opt/claude-anywhere/.env
+
+[Install]
+WantedBy=multi-user.target

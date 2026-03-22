@@ -12,8 +12,9 @@
 import TelegramBot from "node-telegram-bot-api";
 import { spawn } from "child_process";
 import { createInterface } from "readline";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 import { getLicenseTier, activateLicense } from "./license-client.mjs";
 
 // Load .env if present
@@ -45,8 +46,39 @@ const CLAUDE_CWD  = process.env.CLAUDE_CWD?.trim()  || process.cwd();
 const CLAUDE_TIMEOUT_MS = 600_000;
 const MAX_REPLY_LENGTH  = 4000;
 const FREE_DAILY_LIMIT  = 5;
+const TRIAL_DAYS        = 7;
 const UPGRADE_URL = "gumroad.com/l/claude-anywhere";
-const UPGRADE_AD  = `\n\n💡 Upgrade to Pro: unlimited chat, multi-turn, image, file, WeChat → ${UPGRADE_URL} ($5.99/mo)`;
+const UPGRADE_AD  = `\n\n💡 Upgrade to Pro: unlimited chat, multi-turn, image, file, WeChat → ${UPGRADE_URL} ($4.99/mo)`;
+
+// Trial state persisted locally
+const STATE_DIR  = join(homedir(), ".claude-anywhere-free");
+const TRIAL_FILE = join(STATE_DIR, "telegram-trial.json");
+mkdirSync(STATE_DIR, { recursive: true });
+
+function loadTrialState() {
+  try {
+    if (existsSync(TRIAL_FILE)) return JSON.parse(readFileSync(TRIAL_FILE, "utf-8"));
+  } catch {}
+  return {};
+}
+
+function saveTrialState(state) {
+  try { writeFileSync(TRIAL_FILE, JSON.stringify(state, null, 2)); } catch {}
+}
+
+// { [userId]: "YYYY-MM-DD" }  — date of first use
+const trialState = loadTrialState();
+
+function checkTrialExpired(userId) {
+  const today = todayStr();
+  if (!trialState[userId]) {
+    trialState[userId] = today;
+    saveTrialState(trialState);
+    return false;
+  }
+  const daysDiff = Math.floor((new Date(today) - new Date(trialState[userId])) / 86400000);
+  return daysDiff >= TRIAL_DAYS;
+}
 // ================================
 
 const logger = {
@@ -217,7 +249,7 @@ bot.onText(/^\/status$/, async (msg) => {
     await bot.sendMessage(msg.chat.id,
       `📊 Free tier\n` +
       `Today: ${used}/${FREE_DAILY_LIMIT} messages used, ${remaining} remaining\n\n` +
-      `💡 Upgrade to Pro → ${UPGRADE_URL} ($5.99/mo)`
+      `💡 Upgrade to Pro → ${UPGRADE_URL} ($4.99/mo)`
     );
   }
 });
@@ -242,7 +274,7 @@ bot.onText(/^\/help$/, async (msg) => {
     "WeChat support   ✗       ✓\n" +
     "Ads              ✓       ✗\n" +
     "```\n\n" +
-    `💡 Upgrade → ${UPGRADE_URL} ($5.99/mo)`,
+    `💡 Upgrade → ${UPGRADE_URL} ($4.99/mo)`,
     { parse_mode: "Markdown" }
   );
 });
@@ -270,14 +302,14 @@ bot.onText(/^\/activate(?:\s+(.+))?$/, async (msg, match) => {
 // Photo — Pro feature gate
 bot.on("photo", async (msg) => {
   await bot.sendMessage(msg.chat.id,
-    `📷 Image analysis is a Pro feature.\n💡 Upgrade → ${UPGRADE_URL} ($5.99/mo)`
+    `📷 Image analysis is a Pro feature.\n💡 Upgrade → ${UPGRADE_URL} ($4.99/mo)`
   );
 });
 
 // Document — Pro feature gate
 bot.on("document", async (msg) => {
   await bot.sendMessage(msg.chat.id,
-    `📄 File analysis is a Pro feature.\n💡 Upgrade → ${UPGRADE_URL} ($5.99/mo)`
+    `📄 File analysis is a Pro feature.\n💡 Upgrade → ${UPGRADE_URL} ($4.99/mo)`
   );
 });
 
@@ -297,12 +329,20 @@ bot.on("text", async (msg) => {
   logger.info(`Message from [${userId}]: ${text.slice(0, 100)}`);
 
   try {
+    // Check trial period (local check)
+    if (checkTrialExpired(userId)) {
+      await bot.sendMessage(chatId,
+        `⚠️ Your 7-day free trial has expired. Upgrade to Pro for continued access → ${UPGRADE_URL} ($4.99/mo)`
+      );
+      return;
+    }
+
     // Check daily quota
     const quota = await checkAndIncrementQuota(userId);
     if (!quota.allowed) {
       await bot.sendMessage(chatId,
         `⚠️ Free limit reached (${quota.used}/${quota.limit} today). ` +
-        `Upgrade to Pro for unlimited → ${UPGRADE_URL} ($5.99/mo)`
+        `Upgrade to Pro for unlimited → ${UPGRADE_URL} ($4.99/mo)`
       );
       return;
     }

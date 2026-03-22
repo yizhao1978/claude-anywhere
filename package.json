@@ -2,11 +2,16 @@
   "name": "claude-anywhere",
   "version": "1.0.0",
   "type": "module",
-  "description": "Use Claude Code from Telegram — no terminal needed",
+  "description": "Use Claude Code from Telegram or WeChat Work — no terminal needed",
   "main": "bridge-telegram.mjs",
-  "scripts": { "start": "node bridge-telegram.mjs" },
+  "scripts": {
+    "start": "node bridge-telegram.mjs",
+    "telegram": "node bridge-telegram.mjs",
+    "wecom": "node bridge-wecom.mjs"
+  },
   "dependencies": {
     "node-telegram-bot-api": "^0.66.0",
-    "dotenv": "^16.4.0"
+    "dotenv": "^16.4.0",
+    "@wecom/aibot-node-sdk": "^1.0.1"
   }
 }
