@@ -1,7 +1,7 @@
 ---
 name: claude-anywhere
 description: "不是聊天机器人，是你口袋里的AI员工。把Claude Code的全部能力（读写文件、执行命令、代码操作）带到手机上，结合OpenClaw技能生态，随时随地操控你的电脑。Not a chatbot — your AI engineer in your pocket. Claude Code + OpenClaw, via Telegram & WeChat Work."
-version: 1.3.0
+version: 1.5.0
 metadata:
   openclaw:
     requires:
