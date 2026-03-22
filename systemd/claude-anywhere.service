@@ -1,0 +1,14 @@
+[Unit]
+Description=Claude Anywhere Telegram Bridge
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/claude-anywhere
+ExecStart=/usr/bin/node bridge-telegram.mjs
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=/opt/claude-anywhere/.env
+
+[Install]
+WantedBy=multi-user.target

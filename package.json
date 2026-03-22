@@ -1,0 +1,12 @@
+{
+  "name": "claude-anywhere",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Use Claude Code from Telegram — no terminal needed",
+  "main": "bridge-telegram.mjs",
+  "scripts": { "start": "node bridge-telegram.mjs" },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "dotenv": "^16.4.0"
+  }
+}
