@@ -2,6 +2,19 @@
 
 ![Claude Anywhere](https://img.shields.io/badge/Claude-Anywhere-blue?style=for-the-badge)
 
+**不是聊天机器人。是你口袋里的 AI 员工。**
+**Not a chatbot. Your AI engineer, in your pocket.**
+
+在咖啡厅、在地铁上、在床上——读文件、写代码、跑脚本、分析数据，Claude Code 的全部能力，随时随地。
+In a café, on the subway, in bed — read files, write code, run scripts, analyze data. Every power of Claude Code, now in your phone.
+
+> Claude App = 聊天机器人，只能对话
+> Claude Code = 终端里的 AI 工程师，但你必须坐在电脑前
+> OpenClaw = 强大的 AI Agent 框架
+> **Claude Anywhere = Claude Code + OpenClaw，装进你的口袋**
+
+---
+
 通过 Telegram 和企业微信随时随地使用 Claude Code，摆脱终端束缚。
 Use Claude Code anywhere via Telegram & WeChat Work — no terminal needed.
 

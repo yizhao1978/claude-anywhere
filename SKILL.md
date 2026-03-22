@@ -1,6 +1,6 @@
 ---
 name: claude-anywhere
-description: Use Claude Code from Telegram or WeChat Work — no terminal needed. 通过Telegram或企业微信随时随地使用Claude Code
+description: "不是聊天机器人，是你口袋里的AI员工。把Claude Code的全部能力（读写文件、执行命令、代码操作）带到手机上，结合OpenClaw技能生态，随时随地操控你的电脑。Not a chatbot — your AI engineer in your pocket. Claude Code + OpenClaw, via Telegram & WeChat Work."
 version: 1.3.0
 metadata:
   openclaw:
@@ -14,8 +14,14 @@ metadata:
 
 # Claude Anywhere
 
-Use Claude Code anywhere via Telegram or WeChat Work — no terminal needed.
-通过Telegram或企业微信随时随地使用Claude Code，摆脱终端束缚。
+不是聊天机器人。是你口袋里的 AI 员工。
+Not a chatbot. Your AI engineer, in your pocket.
+
+读文件、写代码、跑脚本、分析数据——在地铁上也能做。
+Read files, write code, run scripts, analyze data — even on the subway.
+
+Claude Code 的全部能力 + OpenClaw 技能生态，通过 Telegram / 企业微信随时随地操控你的电脑。
+Every power of Claude Code + OpenClaw skill ecosystem, via Telegram & WeChat Work.
 
 ## Setup
 
