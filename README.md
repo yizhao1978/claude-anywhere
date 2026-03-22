@@ -81,15 +81,7 @@ claude
 # 按提示登录 Anthropic 账号 / Follow prompts to log in to your Anthropic account
 ```
 
-### 3. Claude 订阅账号 / Claude Subscription (Pro or Max)
-
-**本工具不提供 Claude API，你必须有自己的 Claude Pro 或 Max 订阅。**
-**This tool does NOT provide Claude API access. You must have your own Claude Pro or Max subscription.**
-
-- 订阅地址 / Subscribe at: [claude.ai/upgrade](https://claude.ai/upgrade)
-- Claude Code CLI 使用你的 Anthropic 账号，与 claude.ai 共享额度
-
-### 4. Telegram Bot Token（Telegram 用户必填 / Required for Telegram）
+### 3. Telegram Bot Token（Telegram 用户必填 / Required for Telegram）
 
 按以下步骤创建你的 Telegram Bot：
 Follow these steps to create your Telegram Bot:
