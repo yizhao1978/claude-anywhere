@@ -243,6 +243,60 @@ async function handleMessage(userId, text, replyFn) {
   }
 }
 
+// ============ Attachment handling (images, files) ============
+
+async function handleAttachments(userId, msgId, caption, attachments, replyFn) {
+  const pro = await core.isProMode();
+  if (!pro) {
+    await replyFn(core.T.imgProOnly);
+    return;
+  }
+
+  for (const att of attachments) {
+    const contentType = att.content_type || "";
+    const isImage = contentType.startsWith("image/");
+    const url = att.url?.startsWith("http") ? att.url : `https://${att.url}`;
+    const ext = att.filename?.split(".").pop() || (isImage ? "jpg" : "bin");
+    const localPath = join(TMP_DIR, `${randomUUID()}.${ext}`);
+
+    try {
+      // Download attachment
+      const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      if (!res.ok) { core.logger.error(`Failed to download attachment: ${res.status}`); continue; }
+      const buf = Buffer.from(await res.arrayBuffer());
+      writeFileSync(localPath, buf);
+      core.logger.info(`Attachment saved: [${userId}] ${att.filename || "unknown"} -> ${localPath}`);
+
+      let message;
+      if (isImage) {
+        await replyFn("🤔 正在分析图片...");
+        message = `图片文件: ${localPath}\n\n${caption || "请描述这张图片"}\n\n（请用 Read 工具读取上述图片文件来查看图片内容）`;
+      } else {
+        const fileName = att.filename || "unknown";
+        if (ClaudeAnywhere.UNSUPPORTED_EXTS.includes(ext.toLowerCase())) {
+          await replyFn(`❌ 不支持分析 .${ext} 文件。`);
+          try { unlinkSync(localPath); } catch {}
+          continue;
+        }
+        await replyFn(`📄 正在分析文件: ${fileName}...`);
+        message = `文件已保存到: ${localPath}\n文件名: ${fileName}\n\n${caption || "请分析这个文件"}\n\n（请用 Read 工具读取该文件来分析内容）`;
+      }
+
+      const sessionId = core.getSessionId(userId);
+      const result = await core.runClaude(message, sessionId);
+      if (result.sessionId) core.updateSession(userId, result.sessionId, att.filename || "📎");
+      setTimeout(() => { try { unlinkSync(localPath); } catch {} }, 120_000);
+
+      if (result.text) await replyFn(result.text);
+      else await replyFn("Claude 没有返回结果，请重试。");
+      core.logger.info(`Attachment reply (pro): ${(result.text || "").length} chars`);
+    } catch (err) {
+      core.logger.error("Attachment error:", err.message);
+      await replyFn("处理出错: " + err.message);
+    }
+  }
+}
+
 // ============ WebSocket Gateway ============
 
 async function startGateway() {
@@ -316,23 +370,32 @@ async function startGateway() {
           } else if (t === "RESUMED") {
             core.logger.info("Session resumed");
           } else if (t === "C2C_MESSAGE_CREATE") {
-            // Private chat message
+            // Private chat message (text + attachments)
             const openid = d?.author?.user_openid;
             const msgId = d?.id;
-            const content = d?.content?.trim();
-            if (openid && content) {
-              handleMessage(openid, content, (text) => replyC2C(openid, msgId, text));
+            const content = d?.content?.trim() || "";
+            const attachments = d?.attachments || [];
+            const replyFn = (text) => replyC2C(openid, msgId, text);
+
+            if (attachments.length > 0 && openid) {
+              handleAttachments(openid, msgId, content, attachments, replyFn);
+            } else if (openid && content) {
+              handleMessage(openid, content, replyFn);
             }
           } else if (t === "GROUP_AT_MESSAGE_CREATE") {
-            // Group @bot message
+            // Group @bot message (text + attachments)
             const groupOpenid = d?.group_openid;
             const msgId = d?.id;
-            let content = d?.content?.trim();
-            // Remove @bot mention prefix
+            let content = d?.content?.trim() || "";
             if (content) content = content.replace(/^<@!\d+>\s*/, "").trim();
-            if (groupOpenid && content) {
-              const userId = d?.author?.member_openid || groupOpenid;
-              handleMessage(userId, content, (text) => replyGroup(groupOpenid, msgId, text));
+            const attachments = d?.attachments || [];
+            const userId = d?.author?.member_openid || groupOpenid;
+            const replyFn = (text) => replyGroup(groupOpenid, msgId, text);
+
+            if (attachments.length > 0 && groupOpenid) {
+              handleAttachments(userId, msgId, content, attachments, replyFn);
+            } else if (groupOpenid && content) {
+              handleMessage(userId, content, replyFn);
             }
           }
           break;
