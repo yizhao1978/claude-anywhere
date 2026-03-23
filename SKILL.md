@@ -14,11 +14,20 @@ metadata:
 
 # Claude Anywhere
 
+**🦞 龙虾与Claude Code的完美结合 / OpenClaw meets Claude Code, anywhere.**
+
 不是聊天机器人。是你口袋里的 AI 员工。
 Not a chatbot. Your AI engineer, in your pocket.
 
-Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地读写文件、执行命令、分析图片、管理代码——在手机上也能做到电脑上的一切。
-Claude Anywhere gives you the power to read/write files, execute commands, analyze images, manage code — from Telegram, WeChat Work, or QQ, anywhere.
+Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地：
+- 📂 读写文件 / Read/write files
+- ⚡ 执行命令 / Execute commands
+- 📷 分析图片 / Analyze images
+- 📄 文件分析 / Analyze files (PDF, Excel, CSV, code)
+- 🔄 会话恢复 / Resume sessions across devices
+- ⏰ 定时任务 / Schedule cron tasks
+
+**Pro 版 $5.99/月 → [立即升级](https://claudeanywhere.gumroad.com/l/claude-anywhere)**
 
 ## 3步上手 / 3 Steps to Start
 
