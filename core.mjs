@@ -838,12 +838,14 @@ export class ClaudeAnywhere {
       }
 
       case "buy": {
-        const { getMachineId } = await import('./license-client.mjs');
-        const mid = getMachineId();
-        const buyUrl = `https://claudeanywhere.com/buy.html?mid=${mid}`;
-        const msg = this.platform === 'telegram'
-          ? `🛒 *购买 Claude Anywhere Pro*\n\n点击链接扫码付款，完成后自动开通，无需任何额外操作：\n\n${buyUrl}\n\n• 月付 ¥39.99（31天）\n• 年付 ¥399.9（366天，省2个月）`
-          : `🛒 购买 Claude Anywhere Pro\n\n点击链接扫码付款，完成后自动开通：\n${buyUrl}\n\n月付 ¥39.99 / 年付 ¥399.9`;
+        let msg;
+        if (this.platform === 'telegram') {
+          msg = `🛒 *Claude Anywhere Pro*\n\nhttps://claudeanywhere.gumroad.com/l/claude-anywhere\n\n• Monthly $5.99 | Yearly $59.9 (save 2 months)\n\nAfter purchase, activate with /activate <key>`;
+        } else {
+          const { getMachineId } = await import('./license-client.mjs');
+          const buyUrl = `https://claudeanywhere.com/buy.html?mid=${getMachineId()}`;
+          msg = `🛒 购买 Claude Anywhere Pro\n\n点击链接扫码付款，完成后自动开通：\n${buyUrl}\n\n月付 ¥39.99 / 年付 ¥399.9`;
+        }
         return { replies: [msg], parseMode: 'Markdown' };
       }
 
