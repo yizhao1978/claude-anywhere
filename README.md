@@ -1,7 +1,7 @@
 # Claude Anywhere
 
 ![Claude Anywhere](https://img.shields.io/badge/Claude-Anywhere-blue?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.6.0-brightgreen?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.6.1-brightgreen?style=for-the-badge)
 
 **Claude Anywhere Pro — 龙虾与Claude Code的完美结合**
 **Claude Anywhere Pro — OpenClaw meets Claude Code, anywhere.**
@@ -453,6 +453,7 @@ Yes, but running inside WSL2 is recommended.
 
 查看完整版本历史：[CHANGELOG.md](CHANGELOG.md)
 
+**v1.6.1** (2026-03-28) — 统一所有平台使用微信支付+机器码自动激活，移除 /buy 命令
 **v1.6.0** (2026-03-27) — 微信支付自动开通 Pro，付款即激活，无需填写 Key
 **v1.5.0** (2026-03-15) — QQ Bot 图片/文件分析，三平台一键启动
 **v1.4.0** (2026-02-28) — 定时任务 `/cron`
