@@ -270,15 +270,18 @@ bot.on("text", async msg => {
       for (const chunk of core.splitText(result.text)) await bot.sendMessage(chatId, chunk);
       core.logger.info(`Reply: ${result.text.length} chars`);
     } else {
-      const GUMROAD_URL = "https://claudeanywhere.gumroad.com/l/claude-anywhere";
       if (core.isTrialExpired(userId)) {
-        await bot.sendMessage(chatId, `⚠️ Free trial expired (7 days).\n\n🛒 Upgrade to Pro:\n${GUMROAD_URL}\n\n• Monthly $5.99 | Yearly $59.9 (save 2 months)`);
+        const { getMachineId } = await import('./license-client.mjs');
+        const buyUrl = `https://claudeanywhere.com/buy.html?mid=${getMachineId()}`;
+        await bot.sendMessage(chatId, `⚠️ Free trial expired (7 days).\n\n🛒 Upgrade to Pro — pay and it activates instantly:\n${buyUrl}\n\n• Monthly ¥39.99 | Yearly ¥399.9 (save 2 months)`);
         return;
       }
 
       const quota = await core.checkQuotaRemote(userId);
       if (!quota.allowed) {
-        await bot.sendMessage(chatId, `⚠️ Daily limit reached (5/5).\n\n🛒 Upgrade to Pro for unlimited:\n${GUMROAD_URL}\n\n• Monthly $5.99 | Yearly $59.9 (save 2 months)`);
+        const { getMachineId } = await import('./license-client.mjs');
+        const buyUrl = `https://claudeanywhere.com/buy.html?mid=${getMachineId()}`;
+        await bot.sendMessage(chatId, `⚠️ Daily limit reached (5/5).\n\n🛒 Upgrade to Pro for unlimited — pay and it activates instantly:\n${buyUrl}\n\n• Monthly ¥39.99 | Yearly ¥399.9 (save 2 months)`);
         return;
       }
 
