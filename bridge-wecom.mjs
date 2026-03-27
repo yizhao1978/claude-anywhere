@@ -203,7 +203,11 @@ async function handleTextMessage(wsClient, frame) {
     if (!pro) {
       const quota = core.checkQuota(senderId);
       if (!quota.allowed) {
-        const msg = quota.reason === "trial_expired" ? core.T.trialExpired : core.T.limitMsg;
+        const { getMachineId } = await import('./license-client.mjs');
+        const buyUrl = `https://claudeanywhere.com/buy.html?mid=${getMachineId()}`;
+        const msg = quota.reason === "trial_expired"
+          ? `⚠️ 免费试用已到期（7天）。\n\n🛒 升级 Pro，扫码付款后自动开通：\n${buyUrl}\n\n• 月付 ¥39.99 | 年付 ¥399.9（省2个月）`
+          : `⚠️ 今日免费次数已用完（5/5）。\n\n🛒 升级 Pro 无限使用，扫码付款后自动开通：\n${buyUrl}\n\n• 月付 ¥39.99 | 年付 ¥399.9（省2个月）`;
         await wsClient.replyStream(frame, newStreamId(), msg, true);
         return;
       }
