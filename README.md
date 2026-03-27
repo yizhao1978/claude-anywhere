@@ -1,6 +1,7 @@
 # Claude Anywhere
 
 ![Claude Anywhere](https://img.shields.io/badge/Claude-Anywhere-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.6.0-brightgreen?style=for-the-badge)
 
 **Claude Anywhere Pro — 龙虾与Claude Code的完美结合**
 **Claude Anywhere Pro — OpenClaw meets Claude Code, anywhere.**
@@ -445,6 +446,17 @@ A: 试用期结束后需要升级 Pro。购买地址：[claudeanywhere.gumroad.c
 
 A: 支持，但推荐在 WSL2（Windows Subsystem for Linux）环境下运行。
 Yes, but running inside WSL2 is recommended.
+
+---
+
+## 更新日志 / Changelog
+
+查看完整版本历史：[CHANGELOG.md](CHANGELOG.md)
+
+**v1.6.0** (2026-03-27) — 微信支付自动开通 Pro，付款即激活，无需填写 Key
+**v1.5.0** (2026-03-15) — QQ Bot 图片/文件分析，三平台一键启动
+**v1.4.0** (2026-02-28) — 定时任务 `/cron`
+**v1.3.0** (2026-02-10) — 跨平台会话恢复 `/sessions` `/resume`
 
 ---
 
