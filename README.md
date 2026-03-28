@@ -310,6 +310,9 @@ After starting, open your platform, find your bot, and start chatting.
 | `/sessions` | 查看所有历史会话 / List all sessions |
 | `/resume <id>` | 接续指定会话 / Resume a specific session |
 | `/status` | 查看当前账号状态和今日用量 / Show tier & daily usage |
+| `/cron <描述>` | 创建定时任务（自然语言）/ Create scheduled task (natural language) |
+| `/cron list` | 查看所有定时任务 / List all scheduled tasks |
+| `/cron remove <id>` | 删除定时任务 / Remove a scheduled task |
 | `/activate <key>` | 激活 Pro 授权码 / Activate Pro license key |
 | `/help` | 显示帮助和功能列表 / Show help & feature list |
 
@@ -349,6 +352,37 @@ Claude Anywhere immediately restores the full context of that session, as if you
 
 ---
 
+## ⏰ 定时任务详解 / Scheduled Tasks (Cron)
+
+Claude Anywhere 支持用自然语言创建定时任务，无需记忆 cron 表达式。
+Claude Anywhere supports natural-language scheduled tasks — no cron syntax needed.
+
+### 创建任务 / Create a task
+
+直接用中文或英文描述，Bot 会自动解析时间和内容：
+
+```
+/cron 每天早上9点检查服务器状态
+/cron 每周一到周五晚8点同步数据
+/cron 每周一上午10点发送本周任务总结
+/cron every day at 9am check server status
+/cron every Monday summarize my tasks
+/cron in 30 minutes remind me about the meeting
+```
+
+### 管理任务 / Manage tasks
+
+```
+/cron list          # 查看所有定时任务 / List all tasks
+/cron remove <id>   # 删除任务（id 从 list 获取）/ Remove task by id
+/cron help          # 显示帮助 / Show help
+```
+
+> ⚠️ 定时任务是 **Pro 专属功能**。QQ 平台不支持主动推送，建议使用 Telegram 或企业微信。
+> Scheduled tasks require **Pro**. QQ does not support push notifications; use Telegram or WeChat Work.
+
+---
+
 ## 升级 Pro / Upgrade to Pro
 
 Pro 版解锁全部功能：
@@ -359,6 +393,7 @@ Pro unlocks everything:
 - ✅ 图片分析 / Image analysis
 - ✅ 文件分析（PDF、Excel、CSV、代码等）/ File analysis (PDF, Excel, CSV, code, etc.)
 - ✅ 会话历史，可随时恢复对话 / Session history with resume support
+- ✅ 定时任务（/cron）/ Scheduled tasks (/cron)
 - ✅ 无广告 / No ads
 
 **购买地址 / Purchase:** [claudeanywhere.gumroad.com/l/claude-anywhere](https://claudeanywhere.gumroad.com/l/claude-anywhere)（$5.99/月）
