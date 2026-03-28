@@ -70,3 +70,4 @@ After WeChat Pay, Pro is activated instantly and automatically.
 
 
 
+
