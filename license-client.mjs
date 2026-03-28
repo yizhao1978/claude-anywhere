@@ -35,37 +35,49 @@ export async function getLicenseTier() {
     return _cachedTier;
   }
 
-  const key = process.env.LICENSE_KEY?.trim();
-  if (!key) {
-    _cachedTier = "free";
-    _cacheTime = now;
-    return "free";
-  }
-
   const serverUrl = process.env.LICENSE_SERVER_URL?.trim() || "https://license.claudeanywhere.com";
   const machineId = getMachineId();
+  const key = process.env.LICENSE_KEY?.trim();
 
-  try {
-    const res = await fetch(`${serverUrl}/api/license/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ license_key: key, machine_id: machineId }),
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      const tier = data.valid ? (data.tier || "pro") : "free";
-      _cachedTier = tier;
-      _cacheTime = now;
-      return tier;
-    }
-  } catch {
-    // Server unreachable — fall through to cached or free
+  // 1) Key-based verification (existing users with LICENSE_KEY in .env)
+  if (key) {
+    try {
+      const res = await fetch(`${serverUrl}/api/license/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ license_key: key, machine_id: machineId }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const tier = data.valid ? (data.tier || "pro") : "free";
+        _cachedTier = tier;
+        _cacheTime = now;
+        return tier;
+      }
+    } catch { /* fall through */ }
   }
 
-  // Keep previous cached tier on transient error; else default to free
+  // 2) Machine-id-only verification (WeChat Pay / Gumroad auto-activated, no key needed)
+  try {
+    const res = await fetch(
+      `${serverUrl}/api/license/verify_machine?mid=${encodeURIComponent(machineId)}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.valid) {
+        _cachedTier = data.tier || "pro";
+        _cacheTime = now;
+        return _cachedTier;
+      }
+    }
+  } catch { /* fall through */ }
+
+  // Default to free
   if (_cachedTier) return _cachedTier;
+  _cachedTier = "free";
+  _cacheTime = now;
   return "free";
 }
 
