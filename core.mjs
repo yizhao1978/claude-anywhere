@@ -52,24 +52,38 @@ const TEXTS = {
     resumeProOnly: "🔄 /resume is a Pro feature.\n💡 Upgrade → claudeanywhere.gumroad.com/l/claude-anywhere ($5.99/mo)",
     helpPro:
       "🤖 *Claude Anywhere Pro* — Telegram\n\n" +
-      "*Commands:*\n" +
-      "/new — New conversation\n" +
-      "/status — Session status\n" +
-      "/sessions — List session history\n" +
-      "/resume <id> — Resume a session\n" +
-      "/activate <key> — Activate license\n" +
-      "/cron <description> — Schedule a task (natural language)\n" +
-      "/help — Show this help\n\n" +
-      "Send text, images, or files to chat.\n" +
-      "Supported: PDF, Excel, CSV, code files, etc.",
+      "*🚀 Quick Start — just send a message:*\n" +
+      "• `What is quantum computing?` — ask anything\n" +
+      "• Send a photo → `What's in this image?`\n" +
+      "• Attach a PDF/Excel/CSV → auto analysis\n" +
+      "• `Write a Python script to rename files`\n" +
+      "• `Help me debug this code` (paste code)\n\n" +
+      "*📋 Commands:*\n" +
+      "/new — Start a new conversation (clears context)\n" +
+      "/sessions — List your recent sessions\n" +
+      "/resume `<id>` — Continue a previous session\n" +
+      "　　e.g. `/resume abc` (first few chars of session id)\n" +
+      "/status — Show current session info\n" +
+      "/cron `<task>` — Schedule a recurring task\n" +
+      "　　e.g. `/cron every day at 9am check server`\n" +
+      "　　e.g. `/cron every Monday summarize my tasks`\n" +
+      "/cron list — View all scheduled tasks\n" +
+      "/cron remove `<id>` — Delete a task\n" +
+      "/activate `<key>` — Activate license key\n" +
+      "/help — Show this message\n\n" +
+      "📎 *Supported files:* PDF, Excel, CSV, Word, images, code files",
     helpFree:
       "🤖 *Claude Anywhere* — Free Tier\n\n" +
-      "*Commands:*\n" +
-      "/new — Start fresh (already default)\n" +
-      "/status — Show tier & daily usage\n" +
-      "/activate <key> — Activate Pro license\n" +
-      "/help — This message\n\n" +
-      "*Free vs Pro:*\n" +
+      "*🚀 Quick Start — just send a message:*\n" +
+      "• `What is machine learning?`\n" +
+      "• `Write an email for me`\n" +
+      "• `Translate this to English: [text]`\n\n" +
+      "*📋 Commands:*\n" +
+      "/new — Start a fresh conversation\n" +
+      "/status — Check daily usage & trial days left\n" +
+      "/activate `<key>` — Activate Pro license\n" +
+      "/help — Show this message\n\n" +
+      "*⚠️ Free limits:*\n" +
       "```\n" +
       "Feature          Free    Pro\n" +
       "─────────────────────────────\n" +
@@ -78,23 +92,24 @@ const TEXTS = {
       "Image analysis   ✗       ✓\n" +
       "File analysis    ✗       ✓\n" +
       "Scheduled tasks  ✗       ✓\n" +
-      "WeChat support   ✗       ✓\n" +
-      "Ads              ✓       ✗\n" +
       "```\n\n" +
-      "💡 Upgrade → claudeanywhere.gumroad.com/l/claude-anywhere ($5.99/mo)",
+      "💡 *Upgrade Pro* → unlimited messages, multi-turn, images & files\n" +
+      "claudeanywhere.gumroad.com/l/claude-anywhere ($5.99/mo)",
     cronHelp:
       "⏰ *Scheduled Tasks — /cron*\n\n" +
-      "`/cron <description>` — Schedule a task (natural language)\n" +
-      "e.g. `/cron every day at 9am check server status`\n" +
-      "e.g. `/cron every weekday at 8pm sync data`\n" +
-      "e.g. `/cron in 30 minutes remind me about the meeting`\n\n" +
-      "`/cron list` — List scheduled tasks\n" +
-      "`/cron remove <id>` — Remove a task\n" +
+      "*How to create a task (natural language):*\n" +
+      "`/cron every day at 9am check server status`\n" +
+      "`/cron every weekday at 8pm sync data`\n" +
+      "`/cron every Monday at 10am send me a summary`\n" +
+      "`/cron in 30 minutes remind me about the meeting`\n\n" +
+      "*Manage tasks:*\n" +
+      "`/cron list` — List all scheduled tasks\n" +
+      "`/cron remove <id>` — Delete a task (use id from list)\n" +
       "`/cron help` — Show this help\n\n" +
-      "Max 10 jobs per user.",
-    cronNoJobs:  "📋 You have no scheduled jobs.\n\nUse /cron help to learn how to add one.",
-    cronRemoveUsage: "Usage: /cron remove <job id prefix>\nUse /cron list to see your jobs.",
-    activateUsage: "Usage: /activate <license-key>\n\nGet a key → claudeanywhere.gumroad.com/l/claude-anywhere",
+      "Max 10 tasks per user.",
+    cronNoJobs:  "📋 You have no scheduled tasks yet.\n\nExample: `/cron every day at 9am check server status`\nSend `/cron help` for more examples.",
+    cronRemoveUsage: "Usage: `/cron remove <job id>`\nRun `/cron list` first to see your task IDs.",
+    activateUsage: "Usage: `/activate <license-key>`\n\nBuy Pro → claudeanywhere.gumroad.com/l/claude-anywhere ($5.99/mo)",
   },
   wecom: {
     upgradeUrl:  "support@claudeanywhere.com",
@@ -119,40 +134,64 @@ const TEXTS = {
     resumeProOnly: "⚠️ /resume 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
     helpPro:
       "🤖 Claude Anywhere Pro — 企业微信\n\n" +
-      "/new    — 新建对话\n" +
-      "/status — 当前会话状态\n" +
-      "/sessions — 列出历史会话\n" +
-      "/resume <id> — 恢复指定会话\n" +
-      "/activate <key> — 激活授权码\n" +
-      "/cron <描述> — 创建定时任务（自然语言）\n" +
-      "/help   — 显示帮助\n\n" +
-      "直接发文字、图片或文件即可对话。\n支持: PDF、Excel、CSV、代码文件等。",
-    helpFree:
-      "🤖 Claude Anywhere 免费版\n\n" +
-      "命令：\n" +
-      "/new — 新建对话（默认已是单轮）\n" +
-      "/status — 查看今日用量和试用期\n" +
-      "/activate <key> — 激活Pro授权码\n" +
-      "/help — 显示帮助\n\n" +
-      "免费版限制：\n" +
-      "• 每日5条\n" +
-      "• 7天试用期\n" +
-      "• 单轮对话（不续接）\n" +
-      "• 仅支持文字\n\n" +
-      "💡 升级Pro版：无限对话、多轮会话、图片文件分析、定时任务 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
-    cronHelp:
-      "⏰ 定时任务 /cron\n\n" +
-      "/cron <描述> — 创建定时任务（自然语言）\n" +
-      "如：/cron 每天早上9点检查服务器状态\n" +
-      "如：/cron 每周一到周五晚8点同步数据\n" +
-      "如：/cron 30分钟后提醒我开会\n\n" +
+      "🚀 快速开始 — 直接发消息即可：\n" +
+      "• 「量子计算是什么？」— 问任何问题\n" +
+      "• 发送图片 → 「这张图里有什么？」\n" +
+      "• 发送 PDF/Excel/CSV → 自动分析\n" +
+      "• 「帮我写一个重命名文件的Python脚本」\n" +
+      "• 「帮我 debug 这段代码」（粘贴代码）\n\n" +
+      "📋 命令列表：\n" +
+      "/new — 开始新对话（清除上下文）\n" +
+      "/sessions — 查看最近的历史会话\n" +
+      "/resume <id> — 继续某个历史会话\n" +
+      "　　例：/resume abc（会话ID前几位）\n" +
+      "/status — 显示当前会话信息\n" +
+      "/cron <任务> — 创建定时任务（自然语言）\n" +
+      "　　例：/cron 每天早上9点检查服务器\n" +
+      "　　例：/cron 每周一总结本周任务\n" +
       "/cron list — 查看所有定时任务\n" +
       "/cron remove <id> — 删除定时任务\n" +
-      "/cron help — 显示帮助\n\n" +
+      "/activate <激活码> — 激活授权码\n" +
+      "/help — 显示此帮助\n\n" +
+      "📎 支持的文件：PDF、Excel、CSV、Word、图片、代码文件",
+    helpFree:
+      "🤖 Claude Anywhere 免费版 — 企业微信\n\n" +
+      "🚀 快速开始 — 直接发消息即可：\n" +
+      "• 「帮我解释一下这段代码」\n" +
+      "• 「用中文总结一下：...」\n" +
+      "• 「给我写一封邮件，主题是...」\n\n" +
+      "📋 命令：\n" +
+      "/new — 新建对话\n" +
+      "/status — 查看今日用量和试用剩余天数\n" +
+      "/activate <激活码> — 激活Pro授权码\n" +
+      "/help — 显示帮助\n\n" +
+      "免费版 vs Pro版：\n" +
+      "┌──────────┬──────┬──────┐\n" +
+      "│ 功能     │ 免费 │ Pro  │\n" +
+      "├──────────┼──────┼──────┤\n" +
+      "│ 每日条数 │  5   │ 无限 │\n" +
+      "│ 多轮对话 │  ✗   │  ✓   │\n" +
+      "│ 图片分析 │  ✗   │  ✓   │\n" +
+      "│ 文件分析 │  ✗   │  ✓   │\n" +
+      "│ 定时任务 │  ✗   │  ✓   │\n" +
+      "└──────────┴──────┴──────┘\n\n" +
+      "💡 升级Pro版 → support@claudeanywhere.com\n" +
+      "¥39.99/月，年付¥399.9（省2个月）",
+    cronHelp:
+      "⏰ 定时任务 /cron\n\n" +
+      "创建方法（用自然语言描述）：\n" +
+      "/cron 每天早上9点检查服务器状态\n" +
+      "/cron 每周一到周五晚8点同步数据\n" +
+      "/cron 每周一上午10点发送本周总结\n" +
+      "/cron 30分钟后提醒我开会\n\n" +
+      "管理命令：\n" +
+      "/cron list — 查看所有定时任务\n" +
+      "/cron remove <id> — 删除任务（id从 list 获取）\n" +
+      "/cron help — 显示此帮助\n\n" +
       "每用户最多10个任务。",
-    cronNoJobs:  "📋 您还没有定时任务。\n\n发送 /cron help 了解如何添加。",
-    cronRemoveUsage: "用法：/cron remove <任务ID前缀>\n先用 /cron list 查看任务列表。",
-    activateUsage: "用法：/activate <激活码>\n\n购买Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
+    cronNoJobs:  "📋 您还没有定时任务。\n\n示例：/cron 每天早上9点检查服务器状态\n发送 /cron help 查看更多示例。",
+    cronRemoveUsage: "用法：/cron remove <任务ID>\n先用 /cron list 查看任务列表及ID。",
+    activateUsage: "用法：/activate <激活码>\n\n购买Pro版 → support@claudeanywhere.com\n¥39.99/月，年付¥399.9（省2个月）",
   },
   qq: {
     upgradeUrl:  "support@claudeanywhere.com",
@@ -177,40 +216,66 @@ const TEXTS = {
     resumeProOnly: "⚠️ /resume 是Pro版功能。\n💡 升级Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
     helpPro:
       "🤖 Claude Anywhere Pro — QQ\n\n" +
-      "/new    — 新建对话\n" +
-      "/status — 当前会话状态\n" +
-      "/sessions — 列出历史会话\n" +
-      "/resume <id> — 恢复指定会话\n" +
-      "/activate <key> — 激活授权码\n" +
-      "/cron <描述> — 创建定时任务（自然语言）\n" +
-      "/help   — 显示帮助\n\n" +
-      "直接发文字、图片或文件即可对话。\n支持: PDF、Excel、CSV、代码文件等。",
-    helpFree:
-      "🤖 Claude Anywhere 免费版\n\n" +
-      "命令：\n" +
-      "/new — 新建对话（默认已是单轮）\n" +
-      "/status — 查看今日用量和试用期\n" +
-      "/activate <key> — 激活Pro授权码\n" +
-      "/help — 显示帮助\n\n" +
-      "免费版限制：\n" +
-      "• 每日5条\n" +
-      "• 7天试用期\n" +
-      "• 单轮对话（不续接）\n" +
-      "• 仅支持文字\n\n" +
-      "💡 升级Pro版：无限对话、多轮会话、图片文件分析、定时任务 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
-    cronHelp:
-      "⏰ 定时任务 /cron\n\n" +
-      "/cron <描述> — 创建定时任务（自然语言）\n" +
-      "如：/cron 每天早上9点检查服务器状态\n" +
-      "如：/cron 每周一到周五晚8点同步数据\n" +
-      "如：/cron 30分钟后提醒我开会\n\n" +
+      "🚀 快速开始 — 直接发消息即可：\n" +
+      "• 「量子计算是什么？」— 问任何问题\n" +
+      "• 发送图片 → 「这张图里有什么？」\n" +
+      "• 发送 PDF/Excel/CSV → 自动分析\n" +
+      "• 「帮我写一个重命名文件的Python脚本」\n" +
+      "• 「帮我 debug 这段代码」（粘贴代码）\n\n" +
+      "📋 命令列表：\n" +
+      "/new — 开始新对话（清除上下文）\n" +
+      "/sessions — 查看最近的历史会话\n" +
+      "/resume <id> — 继续某个历史会话\n" +
+      "　　例：/resume abc（会话ID前几位）\n" +
+      "/status — 显示当前会话信息\n" +
+      "/cron <任务> — 创建定时任务（自然语言）\n" +
+      "　　例：/cron 每天早上9点检查服务器\n" +
+      "　　例：/cron 每周一总结本周任务\n" +
       "/cron list — 查看所有定时任务\n" +
       "/cron remove <id> — 删除定时任务\n" +
-      "/cron help — 显示帮助\n\n" +
+      "/activate <激活码> — 激活授权码\n" +
+      "/help — 显示此帮助\n\n" +
+      "⚠️ 注意：QQ不支持定时任务推送结果，建议用企业微信。\n" +
+      "📎 支持的文件：PDF、Excel、CSV、Word、图片、代码文件",
+    helpFree:
+      "🤖 Claude Anywhere 免费版 — QQ\n\n" +
+      "🚀 快速开始 — 直接发消息即可：\n" +
+      "• 「帮我解释一下这段代码」\n" +
+      "• 「用中文总结一下：...」\n" +
+      "• 「给我写一封邮件，主题是...」\n\n" +
+      "📋 命令：\n" +
+      "/new — 新建对话\n" +
+      "/status — 查看今日用量和试用剩余天数\n" +
+      "/activate <激活码> — 激活Pro授权码\n" +
+      "/help — 显示帮助\n\n" +
+      "免费版 vs Pro版：\n" +
+      "┌──────────┬──────┬──────┐\n" +
+      "│ 功能     │ 免费 │ Pro  │\n" +
+      "├──────────┼──────┼──────┤\n" +
+      "│ 每日条数 │  5   │ 无限 │\n" +
+      "│ 多轮对话 │  ✗   │  ✓   │\n" +
+      "│ 图片分析 │  ✗   │  ✓   │\n" +
+      "│ 文件分析 │  ✗   │  ✓   │\n" +
+      "│ 定时任务 │  ✗   │  ✓   │\n" +
+      "└──────────┴──────┴──────┘\n\n" +
+      "💡 升级Pro版 → support@claudeanywhere.com\n" +
+      "¥39.99/月，年付¥399.9（省2个月）",
+    cronHelp:
+      "⏰ 定时任务 /cron\n\n" +
+      "创建方法（用自然语言描述）：\n" +
+      "/cron 每天早上9点检查服务器状态\n" +
+      "/cron 每周一到周五晚8点同步数据\n" +
+      "/cron 每周一上午10点发送本周总结\n" +
+      "/cron 30分钟后提醒我开会\n\n" +
+      "管理命令：\n" +
+      "/cron list — 查看所有定时任务\n" +
+      "/cron remove <id> — 删除任务（id从 list 获取）\n" +
+      "/cron help — 显示此帮助\n\n" +
+      "⚠️ 注意：QQ不支持定时推送结果，建议用企业微信。\n" +
       "每用户最多10个任务。",
-    cronNoJobs:  "📋 您还没有定时任务。\n\n发送 /cron help 了解如何添加。",
-    cronRemoveUsage: "用法：/cron remove <任务ID前缀>\n先用 /cron list 查看任务列表。",
-    activateUsage: "用法：/activate <激活码>\n\n购买Pro版 → 联系 support@claudeanywhere.com（¥39.99/月，年付¥399.9省2个月）",
+    cronNoJobs:  "📋 您还没有定时任务。\n\n示例：/cron 每天早上9点检查服务器状态\n发送 /cron help 查看更多示例。",
+    cronRemoveUsage: "用法：/cron remove <任务ID>\n先用 /cron list 查看任务列表及ID。",
+    activateUsage: "用法：/activate <激活码>\n\n购买Pro版 → support@claudeanywhere.com\n¥39.99/月，年付¥399.9（省2个月）",
   },
 };
 
