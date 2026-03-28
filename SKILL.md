@@ -1,7 +1,7 @@
 ---
 name: claude-anywhere
 description: "不是聊天机器人，是你口袋里的AI员工。Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地读写文件、执行命令、分析图片、管理代码。Not a chatbot — your AI engineer in your pocket. Claude Anywhere lets you read/write files, execute commands, analyze images, manage code — from Telegram, WeChat Work, or QQ, anywhere."
-version: 1.5.1
+version: 1.6.1
 metadata:
   openclaw:
     requires:
@@ -9,7 +9,7 @@ metadata:
       env: [TELEGRAM_BOT_TOKEN]
     primaryEnv: TELEGRAM_BOT_TOKEN
     emoji: "📱"
-    homepage: https://claudeanywhere.gumroad.com/l/claude-anywhere ($5.99/mo)
+    homepage: https://claudeanywhere.com/buy.html
 ---
 
 # Claude Anywhere
@@ -27,7 +27,7 @@ Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地：
 - 🔄 会话恢复 / Resume sessions across devices
 - ⏰ 定时任务 / Schedule cron tasks
 
-**Pro 版 $5.99/月 → [立即升级](https://claudeanywhere.gumroad.com/l/claude-anywhere)**
+**Pro 版 ¥39.99/月 → [立即升级](https://claudeanywhere.com/buy.html)**
 
 ## 3步上手 / 3 Steps to Start
 
@@ -56,13 +56,14 @@ Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地：
 - Text only
 - Upgrade prompts on every reply
 
-## Pro ($5.99/mo) → https://claudeanywhere.gumroad.com/l/claude-anywhere
+## Pro (¥39.99/月 | ¥399.9/年) → https://claudeanywhere.com/buy.html
 - Unlimited messages
 - Multi-turn conversations with /resume
 - Image and file analysis
 - WeChat Work full support
-- No ads
+- **付款后自动开通，无需填写 License Key / Auto-activated after payment**
 
 ## License Activation
 
-Set LICENSE_KEY in .env and restart, or use /activate <key> command in the bot.
+扫码付款后 Pro 自动开通，无需任何操作。
+After WeChat Pay, Pro is activated instantly and automatically.
