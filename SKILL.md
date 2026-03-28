@@ -68,3 +68,4 @@ Claude Anywhere 让你通过 Telegram、企业微信、QQ 随时随地：
 扫码付款后 Pro 自动开通，无需任何操作。
 After WeChat Pay, Pro is activated instantly and automatically.
 
+
